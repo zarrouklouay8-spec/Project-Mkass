@@ -3,6 +3,144 @@ const router = require('express').Router();
 const pool = require('../db/pool');
 const { requireSalonAccess } = require('../middleware/auth');
 
+
+function cleanPhone(phone) {
+  return String(phone || '').replace(/\s+/g, '').trim();
+}
+
+async function getSalonRules(salonId) {
+  const { rows } = await pool.query(
+    `SELECT * FROM salon_rules WHERE salon_id = $1`,
+    [salonId]
+  );
+  return rows[0] || {
+    no_show_enabled: true,
+    no_show_limit: 1,
+    no_show_window_days: 30,
+    ban_duration_days: 30,
+    ban_message: 'Ce numéro est temporairement bloqué suite à une réservation non honorée. Veuillez contacter le salon.',
+    loyalty_enabled: true,
+    loyalty_required_visits: 10,
+    loyalty_reward_type: 'free_service',
+    loyalty_reward_value: 100,
+    loyalty_valid_days: 60
+  };
+}
+
+async function checkClientBan(salonId, phone) {
+  const finalPhone = cleanPhone(phone);
+  if (!finalPhone) return null;
+
+  const { rows } = await pool.query(
+    `SELECT b.*, COALESCE(r.ban_message, 'Ce numéro est temporairement bloqué. Veuillez contacter le salon.') AS ban_message
+     FROM banned_clients b
+     LEFT JOIN salon_rules r ON r.salon_id = b.salon_id
+     WHERE b.salon_id = $1
+       AND b.phone = $2
+       AND b.active = true
+       AND (b.banned_until IS NULL OR b.banned_until >= CURRENT_DATE)
+     ORDER BY b.created_at DESC
+     LIMIT 1`,
+    [salonId, finalPhone]
+  );
+  return rows[0] || null;
+}
+
+async function applyNoShowRules(salonId, appointment) {
+  const rules = await getSalonRules(salonId);
+  if (!rules.no_show_enabled) return;
+
+  const phone = cleanPhone(appointment.client_phone);
+  if (!phone) return;
+
+  const windowDays = Number(rules.no_show_window_days || 30);
+  const limit = Number(rules.no_show_limit || 1);
+  const banDays = Number(rules.ban_duration_days || 30);
+
+  const { rows } = await pool.query(
+    `SELECT COUNT(*)::int AS count
+     FROM appointments
+     WHERE salon_id = $1
+       AND REPLACE(client_phone, ' ', '') = $2
+       AND status = 'no_show'
+       AND appt_date >= CURRENT_DATE - ($3::int * INTERVAL '1 day')`,
+    [salonId, phone, windowDays]
+  );
+
+  const count = Number(rows[0]?.count || 0);
+  if (count < limit) return;
+
+  await pool.query(
+    `UPDATE banned_clients
+     SET active = false
+     WHERE salon_id = $1
+       AND phone = $2
+       AND active = true`,
+    [salonId, phone]
+  );
+
+  await pool.query(
+    `INSERT INTO banned_clients (
+      salon_id,
+      phone,
+      client_name,
+      reason,
+      no_show_count,
+      banned_until,
+      active
+     )
+     VALUES ($1,$2,$3,'no_show',$4,CURRENT_DATE + ($5::int * INTERVAL '1 day'),true)`,
+    [salonId, phone, appointment.client_name || '', count, banDays]
+  );
+}
+
+async function applyLoyaltyRules(salonId, appointment) {
+  const rules = await getSalonRules(salonId);
+  if (!rules.loyalty_enabled) return;
+
+  const phone = cleanPhone(appointment.client_phone);
+  if (!phone) return;
+
+  const required = Number(rules.loyalty_required_visits || 10);
+  const validDays = Number(rules.loyalty_valid_days || 60);
+
+  const { rows } = await pool.query(
+    `INSERT INTO loyalty_progress (
+      salon_id,
+      phone,
+      client_name,
+      visits_count,
+      reward_status,
+      reward_type,
+      reward_value,
+      updated_at
+     )
+     VALUES ($1,$2,$3,1,'progress',$4,$5,NOW())
+     ON CONFLICT (salon_id, phone)
+     DO UPDATE SET
+       client_name = EXCLUDED.client_name,
+       visits_count = loyalty_progress.visits_count + 1,
+       updated_at = NOW()
+     RETURNING *`,
+    [salonId, phone, appointment.client_name || '', rules.loyalty_reward_type || 'free_service', Number(rules.loyalty_reward_value || 100)]
+  );
+
+  const progress = rows[0];
+  if (Number(progress.visits_count || 0) >= required && progress.reward_status !== 'earned') {
+    await pool.query(
+      `UPDATE loyalty_progress SET
+         reward_status = 'earned',
+         reward_type = $1,
+         reward_value = $2,
+         earned_at = COALESCE(earned_at, NOW()),
+         expires_at = COALESCE(expires_at, CURRENT_DATE + ($3::int * INTERVAL '1 day')),
+         updated_at = NOW()
+       WHERE salon_id = $4 AND phone = $5`,
+      [rules.loyalty_reward_type || 'free_service', Number(rules.loyalty_reward_value || 100), validDays, salonId, phone]
+    );
+  }
+}
+
 // ── GET bookings by phone ────────────────────────────────────
 // Public: /api/salons/appointments/by-phone?phone=...
 router.get('/appointments/by-phone', async (req, res) => {
@@ -115,7 +253,7 @@ router.get('/:salonId/slots', async (req, res) => {
        FROM appointments
        WHERE salon_id = $1
          AND appt_date = $2
-         AND status != 'cancelled'`,
+         AND status NOT IN ('cancelled','no_show')`,
       [req.params.salonId, date]
     );
 
@@ -195,6 +333,14 @@ router.post('/:salonId/appointments', async (req, res) => {
       return res.status(400).json({ error: 'La réservation doit être à partir de demain' });
     }
 
+    const activeBan = await checkClientBan(req.params.salonId, cleanPhone);
+    if (activeBan) {
+      return res.status(403).json({
+        error: activeBan.ban_message || 'Ce numéro est temporairement bloqué. Veuillez contacter le salon.',
+        bannedUntil: activeBan.banned_until
+      });
+    }
+
     // Prevent double booking.
     // If staff_id exists, only block if that exact staff member is busy.
     // If staff_id is missing, fallback to old salon-wide conflict check.
@@ -206,7 +352,7 @@ router.post('/:salonId/appointments', async (req, res) => {
            AND appt_date = $2
            AND appt_time = $3
            AND staff_id = $4
-           AND status != 'cancelled'`,
+           AND status NOT IN ('cancelled','no_show')`,
         [req.params.salonId, safeDate, safeTime, finalStaffId]
       );
 
@@ -222,7 +368,7 @@ router.post('/:salonId/appointments', async (req, res) => {
          WHERE salon_id = $1
            AND appt_date = $2
            AND appt_time = $3
-           AND status != 'cancelled'`,
+           AND status NOT IN ('cancelled','no_show')`,
         [req.params.salonId, safeDate, safeTime]
       );
 
@@ -368,6 +514,14 @@ router.patch('/:salonId/appointments/:id/status', requireSalonAccess, async (req
 
     if (!rows.length) {
       return res.status(404).json({ error: 'Appointment not found' });
+    }
+
+    if (status === 'no_show') {
+      await applyNoShowRules(req.params.salonId, rows[0]);
+    }
+
+    if (status === 'done') {
+      await applyLoyaltyRules(req.params.salonId, rows[0]);
     }
 
     res.json(rows[0]);

@@ -170,8 +170,12 @@ router.get('/:salonId/slots', async (req, res) => {
 
     const allSlots = [
       '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-      '12:00', '14:00', '14:30', '15:00', '15:30', '16:00',
-      '16:30', '17:00', '17:30'
+      '12:00', '12:30', '13:00', '13:30',
+      '14:00', '14:30', '15:00', '15:30',
+      '16:00', '16:30', '17:00', '17:30',
+      '18:00', '18:30', '19:00', '19:30',
+      '20:00', '20:30', '21:00', '21:30',
+      '22:00', '22:30', '23:00', '23:30'
     ];
 
     const selectedDate = new Date(date + 'T12:00:00');
@@ -216,7 +220,7 @@ router.get('/:salonId/slots', async (req, res) => {
          FROM appointments
          WHERE salon_id = $1
            AND appt_date = $2
-           AND status <> 'cancelled'`,
+           AND status NOT IN ('cancelled','no_show')`,
         [salonId, date]
       );
 
@@ -245,7 +249,7 @@ router.get('/:salonId/slots', async (req, res) => {
          FROM appointments
          WHERE salon_id = $1
            AND appt_date = $2
-           AND status <> 'cancelled'`,
+           AND status NOT IN ('cancelled','no_show')`,
         [salonId, date]
       );
 
@@ -301,7 +305,7 @@ router.get('/:salonId/slots', async (req, res) => {
        FROM appointments
        WHERE salon_id = $1
          AND appt_date = $2
-         AND status <> 'cancelled'
+         AND status NOT IN ('cancelled','no_show')
          AND staff_id IS NOT NULL`,
       [salonId, date]
     );

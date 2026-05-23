@@ -31,8 +31,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // ── HEALTH CHECK ─────────────────────────────────────────────
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'mkass-api', ts: new Date().toISOString() });
@@ -45,6 +45,7 @@ const appointmentRoutes  = require('./routes/appointments');
 const balanceRoutes      = require('./routes/balance');
 const staffRoutes        = require('./routes/staff');
 const financeRoutes      = require('./routes/finance');
+const rulesRoutes        = require('./routes/rules');
 const adminRoutes        = require('./routes/admin');
 
 app.use('/api/auth',    authRoutes);
@@ -54,6 +55,7 @@ app.use('/api/salons',  appointmentRoutes);
 app.use('/api/salons',  balanceRoutes);
 app.use('/api/salons',  staffRoutes);
 app.use('/api/salons',  financeRoutes);
+app.use('/api/salons',  rulesRoutes);
 app.use('/api/admin',   adminRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/gerants', gerantRoutes);

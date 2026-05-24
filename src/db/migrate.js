@@ -30,7 +30,7 @@ map_url     TEXT,
 lat         DOUBLE PRECISION,
 lng         DOUBLE PRECISION,
 phone       TEXT,
-plan        TEXT,
+plan        TEXT DEFAULT 'starter',
         subscription_status TEXT DEFAULT 'active',
         created_at  TIMESTAMPTZ DEFAULT NOW()
       );
@@ -40,7 +40,9 @@ plan        TEXT,
 await client.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;`);
 await client.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;`);
 await client.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS phone TEXT;`);
-await client.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS plan TEXT;`);
+await client.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'starter';`);
+await client.query(`UPDATE salons SET plan = 'starter' WHERE plan IS NULL OR plan = '';`);
+await client.query(`ALTER TABLE salons ALTER COLUMN plan SET DEFAULT 'starter';`);
 await client.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'active';`);
     // ── SERVICES ─────────────────────────────────────────────
     await client.query(`
@@ -166,6 +168,7 @@ await client.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS subscription_sta
     await client.query(`CREATE INDEX IF NOT EXISTS idx_svc_salon    ON services(salon_id);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_review_salon ON reviews(salon_id);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_sub_salon ON subscriptions(salon_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_salons_plan ON salons(plan);`);
 
     // Better indexes for booking / staff scheduling performance
     await client.query(`

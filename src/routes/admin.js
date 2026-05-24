@@ -67,6 +67,34 @@ router.get('/appointments', requireAdmin, async (req, res) => {
   }
 });
 
+
+
+// ── PATCH /api/admin/salons/:salonId/plan ───────────────────
+// Admin changes a salon plan: starter or pro
+router.patch('/salons/:salonId/plan', requireAdmin, async (req, res) => {
+  try {
+    const plan = String(req.body.plan || '').toLowerCase().trim();
+    if (!['starter', 'pro'].includes(plan)) {
+      return res.status(400).json({ error: 'Invalid plan. Use starter or pro.' });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE salons
+       SET plan = $1,
+           subscription_status = COALESCE($2, subscription_status, 'active')
+       WHERE id = $3
+       RETURNING id, name, username, plan, subscription_status`,
+      [plan, req.body.subscriptionStatus || req.body.subscription_status || 'active', req.params.salonId]
+    );
+
+    if (!rows.length) return res.status(404).json({ error: 'Salon not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // ── PATCH /api/admin/salons/:salonId/reset-password ─────────
 // Admin resets a gérant's password
 router.patch('/salons/:salonId/reset-password', requireAdmin, async (req, res) => {

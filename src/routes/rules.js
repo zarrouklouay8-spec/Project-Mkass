@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const pool = require('../db/pool');
-const { requireSalonAccess } = require('../middleware/auth');
+const { requireSalonAccess, requireProPlan } = require('../middleware/auth');
 
 const DEFAULT_RULES = {
   no_show_enabled: true,
@@ -55,7 +55,7 @@ async function ensureRules(salonId) {
 }
 
 // GET /api/salons/:salonId/rules
-router.get('/:salonId/rules', requireSalonAccess, async (req, res) => {
+router.get('/:salonId/rules', requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     const rules = await ensureRules(req.params.salonId);
     res.json(rules);
@@ -66,7 +66,7 @@ router.get('/:salonId/rules', requireSalonAccess, async (req, res) => {
 });
 
 // PUT /api/salons/:salonId/rules
-router.put('/:salonId/rules', requireSalonAccess, async (req, res) => {
+router.put('/:salonId/rules', requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     const { salonId } = req.params;
     await ensureRules(salonId);
@@ -122,7 +122,7 @@ router.put('/:salonId/rules', requireSalonAccess, async (req, res) => {
 });
 
 // GET /api/salons/:salonId/banned-clients
-router.get('/:salonId/banned-clients', requireSalonAccess, async (req, res) => {
+router.get('/:salonId/banned-clients', requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT id, salon_id, phone, client_name, reason, no_show_count, banned_until, active, created_at
@@ -141,7 +141,7 @@ router.get('/:salonId/banned-clients', requireSalonAccess, async (req, res) => {
 });
 
 // DELETE /api/salons/:salonId/banned-clients/:banId
-router.delete('/:salonId/banned-clients/:banId', requireSalonAccess, async (req, res) => {
+router.delete('/:salonId/banned-clients/:banId', requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     const { salonId, banId } = req.params;
     const { rowCount } = await pool.query(
@@ -157,7 +157,7 @@ router.delete('/:salonId/banned-clients/:banId', requireSalonAccess, async (req,
 });
 
 // GET /api/salons/:salonId/loyalty
-router.get('/:salonId/loyalty', requireSalonAccess, async (req, res) => {
+router.get('/:salonId/loyalty', requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT phone, client_name, visits_count, reward_status, reward_type, reward_value, earned_at, expires_at, used_at, updated_at

@@ -1,7 +1,7 @@
 // src/routes/finance.js
 const router = require('express').Router();
 const pool = require('../db/pool');
-const { requireSalonAccess } = require('../middleware/auth');
+const { requireSalonAccess, requireProPlan } = require('../middleware/auth');
 
 function periodSql(period, dateColumn, params) {
   if (period === 'today') {
@@ -42,7 +42,7 @@ async function hasTable(table) {
 }
 
 // GET /api/salons/:salonId/expenses
-router.get(['/:salonId/expenses','/:salonId/finance/expenses'], requireSalonAccess, async (req, res) => {
+router.get(['/:salonId/expenses','/:salonId/finance/expenses'], requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     const { salonId } = req.params;
     const { period } = req.query;
@@ -66,7 +66,7 @@ router.get(['/:salonId/expenses','/:salonId/finance/expenses'], requireSalonAcce
 });
 
 // POST /api/salons/:salonId/expenses
-router.post(['/:salonId/expenses','/:salonId/finance/expenses'], requireSalonAccess, async (req, res) => {
+router.post(['/:salonId/expenses','/:salonId/finance/expenses'], requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     const { salonId } = req.params;
     const {
@@ -128,7 +128,7 @@ router.post(['/:salonId/expenses','/:salonId/finance/expenses'], requireSalonAcc
 });
 
 // DELETE /api/salons/:salonId/expenses/:expenseId
-router.delete(['/:salonId/expenses/:expenseId','/:salonId/finance/expenses/:expenseId'], requireSalonAccess, async (req, res) => {
+router.delete(['/:salonId/expenses/:expenseId','/:salonId/finance/expenses/:expenseId'], requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     const { salonId, expenseId } = req.params;
     const { rowCount } = await pool.query(
@@ -144,7 +144,7 @@ router.delete(['/:salonId/expenses/:expenseId','/:salonId/finance/expenses/:expe
 });
 
 // GET /api/salons/:salonId/finance/summary?period=month|week|today|all
-router.get('/:salonId/finance/summary', requireSalonAccess, async (req, res) => {
+router.get('/:salonId/finance/summary', requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     const { salonId } = req.params;
     const { period = 'month' } = req.query;

@@ -1,5 +1,6 @@
 // src/middleware/auth.js
 const jwt = require('jsonwebtoken');
+const pool = require('../db/pool');
 
 function requireAuth(req, res, next) {
   const header = req.headers.authorization;
@@ -34,4 +35,51 @@ function requireSalonAccess(req, res, next) {
   });
 }
 
-module.exports = { requireAuth, requireAdmin, requireSalonAccess };
+async function getSalonPlan(salonId) {
+  const { rows } = await pool.query(
+    `SELECT COALESCE(plan, 'starter') AS plan,
+            COALESCE(subscription_status, 'active') AS subscription_status
+     FROM salons
+     WHERE id = $1`,
+    [salonId]
+  );
+  return rows[0] || null;
+}
+
+// Use after requireSalonAccess. Admins bypass this check.
+async function requireProPlan(req, res, next) {
+  try {
+    if (req.user?.role === 'admin') return next();
+
+    const salonId = req.params.salonId || req.body.salonId || req.user?.salonId;
+    if (!salonId) {
+      return res.status(400).json({ error: 'salonId is required' });
+    }
+
+    const salon = await getSalonPlan(salonId);
+    if (!salon) {
+      return res.status(404).json({ error: 'Salon not found' });
+    }
+
+    const plan = String(salon.plan || 'starter').toLowerCase();
+    const status = String(salon.subscription_status || 'active').toLowerCase();
+
+    if (plan !== 'pro') {
+      return res.status(403).json({
+        error: 'Cette fonction est disponible avec le pack Pro.',
+        code: 'PRO_REQUIRED',
+        plan,
+        subscriptionStatus: status,
+      });
+    }
+
+    req.salonPlan = plan;
+    req.subscriptionStatus = status;
+    return next();
+  } catch (err) {
+    console.error('requireProPlan error:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+}
+
+module.exports = { requireAuth, requireAdmin, requireSalonAccess, requireProPlan, getSalonPlan };

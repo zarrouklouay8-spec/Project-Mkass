@@ -1,7 +1,7 @@
 // src/routes/services.js
 const router = require('express').Router();
 const pool = require('../db/pool');
-const { requireSalonAccess } = require('../middleware/auth');
+const { requireSalonAccess, requireActiveSubscription } = require('../middleware/auth');
 
 // ── GET /api/salons/:salonId/services ────────────────────────
 // Public — list services for a salon (used on booking page)
@@ -20,7 +20,7 @@ router.get('/:salonId/services', async (req, res) => {
 
 // ── POST /api/salons/:salonId/services ───────────────────────
 // Gérant adds a service to their salon
-router.post('/:salonId/services', requireSalonAccess, async (req, res) => {
+router.post('/:salonId/services', requireSalonAccess, requireActiveSubscription, async (req, res) => {
   try {
     const { category, name, duration, price } = req.body;
     if (!name || !price) return res.status(400).json({ error: 'name and price are required' });
@@ -37,7 +37,7 @@ router.post('/:salonId/services', requireSalonAccess, async (req, res) => {
 
 // ── PUT /api/salons/:salonId/services/:serviceId ─────────────
 // Gérant updates a service (e.g. change price)
-router.put('/:salonId/services/:serviceId', requireSalonAccess, async (req, res) => {
+router.put('/:salonId/services/:serviceId', requireSalonAccess, requireActiveSubscription, async (req, res) => {
   try {
     const { category, name, duration, price } = req.body;
     const { rows } = await pool.query(`
@@ -58,7 +58,7 @@ router.put('/:salonId/services/:serviceId', requireSalonAccess, async (req, res)
 });
 
 // ── DELETE /api/salons/:salonId/services/:serviceId ──────────
-router.delete('/:salonId/services/:serviceId', requireSalonAccess, async (req, res) => {
+router.delete('/:salonId/services/:serviceId', requireSalonAccess, requireActiveSubscription, async (req, res) => {
   try {
     await pool.query(
       'DELETE FROM services WHERE id = $1 AND salon_id = $2',

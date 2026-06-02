@@ -1,12 +1,12 @@
 // src/routes/balance.js
 const router = require('express').Router();
 const pool = require('../db/pool');
-const { requireSalonAccess } = require('../middleware/auth');
+const { requireSalonAccess, requireActiveSubscription } = require('../middleware/auth');
 
 // ── GET /api/salons/:salonId/balance ─────────────────────────
 // Gérant — total balance + transaction history
 // Query params: ?type=all|booking|walkin&period=today|week|month|all
-router.get('/:salonId/balance', requireSalonAccess, async (req, res) => {
+router.get('/:salonId/balance', requireSalonAccess, requireActiveSubscription, async (req, res) => {
   try {
     const { type, period } = req.query;
     const salonId = req.params.salonId;

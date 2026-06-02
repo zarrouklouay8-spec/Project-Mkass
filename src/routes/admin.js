@@ -70,7 +70,7 @@ router.get('/appointments', requireAdmin, async (req, res) => {
 
 
 // ── PATCH /api/admin/salons/:salonId/plan ───────────────────
-// Admin changes a salon plan: starter or pro
+// Admin changes a salon plan: starter or pro. Keeps the salon active by default.
 router.patch('/salons/:salonId/plan', requireAdmin, async (req, res) => {
   try {
     const plan = String(req.body.plan || '').toLowerCase().trim();
@@ -78,13 +78,53 @@ router.patch('/salons/:salonId/plan', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Invalid plan. Use starter or pro.' });
     }
 
+    const status = req.body.subscriptionStatus || req.body.subscription_status || 'active';
+    const dueAt = req.body.subscriptionDueAt || req.body.subscription_due_at || null;
+
     const { rows } = await pool.query(
       `UPDATE salons
        SET plan = $1,
-           subscription_status = COALESCE($2, subscription_status, 'active')
-       WHERE id = $3
-       RETURNING id, name, username, plan, subscription_status`,
-      [plan, req.body.subscriptionStatus || req.body.subscription_status || 'active', req.params.salonId]
+           subscription_status = $2,
+           subscription_due_at = COALESCE($3::timestamptz, subscription_due_at),
+           subscription_blocked_reason = CASE WHEN $2 = 'active' THEN NULL ELSE subscription_blocked_reason END
+       WHERE id = $4
+       RETURNING id, name, username, plan, subscription_status, subscription_due_at, subscription_blocked_reason`,
+      [plan, status, dueAt, req.params.salonId]
+    );
+
+    if (!rows.length) return res.status(404).json({ error: 'Salon not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── PATCH /api/admin/salons/:salonId/subscription ───────────
+// Admin blocks/unblocks a salon subscription after manual payment checks.
+router.patch('/salons/:salonId/subscription', requireAdmin, async (req, res) => {
+  try {
+    const plan = req.body.plan ? String(req.body.plan).toLowerCase().trim() : null;
+    const status = String(req.body.status || req.body.subscriptionStatus || req.body.subscription_status || '').toLowerCase().trim();
+    const dueAt = req.body.dueAt || req.body.subscriptionDueAt || req.body.subscription_due_at || null;
+    const reason = req.body.reason || req.body.subscriptionBlockedReason || req.body.subscription_blocked_reason || null;
+
+    if (plan && !['starter', 'pro'].includes(plan)) {
+      return res.status(400).json({ error: 'Invalid plan. Use starter or pro.' });
+    }
+    if (!['active', 'pending_payment', 'past_due', 'suspended', 'cancelled'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid subscription status' });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE salons SET
+         plan = COALESCE($1, plan),
+         subscription_status = $2,
+         subscription_due_at = COALESCE($3::timestamptz, subscription_due_at),
+         subscription_blocked_reason = CASE WHEN $2 = 'active' THEN NULL ELSE COALESCE($4, subscription_blocked_reason) END
+       WHERE id = $5
+       RETURNING id, name, username, plan, subscription_status, subscription_due_at, subscription_blocked_reason`,
+      [plan, status, dueAt, reason, req.params.salonId]
     );
 
     if (!rows.length) return res.status(404).json({ error: 'Salon not found' });

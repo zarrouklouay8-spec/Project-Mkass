@@ -2,7 +2,7 @@
 const router = require('express').Router();
 const pool = require('../db/pool');
 const bcrypt = require('bcryptjs');
-const { requireAdmin, requireSalonAccess } = require('../middleware/auth');
+const { requireAdmin, requireSalonAccess, requireActiveSubscription } = require('../middleware/auth');
 
 function toMinutes(time) {
   const [h, m] = String(time).slice(0, 5).split(':').map(Number);
@@ -73,7 +73,7 @@ router.get('/', async (req, res) => {
 });
 
 // Gerant - get salon opening hours
-router.get('/:salonId/hours', requireSalonAccess, async (req, res) => {
+router.get('/:salonId/hours', requireSalonAccess, requireActiveSubscription, async (req, res) => {
   try {
     const { salonId } = req.params;
 
@@ -93,7 +93,7 @@ router.get('/:salonId/hours', requireSalonAccess, async (req, res) => {
 });
 
 // Gerant - update salon opening hours
-router.put('/:salonId/hours', requireSalonAccess, async (req, res) => {
+router.put('/:salonId/hours', requireSalonAccess, requireActiveSubscription, async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -417,7 +417,7 @@ router.get('/:salonId', async (req, res) => {
 });
 
 // Gerant updates their own salon settings
-router.put('/:salonId', requireSalonAccess, async (req, res) => {
+router.put('/:salonId', requireSalonAccess, requireActiveSubscription, async (req, res) => {
   try {
     const { salonId } = req.params;
 

@@ -1,7 +1,7 @@
 // src/routes/appointments.js
 const router = require('express').Router();
 const pool = require('../db/pool');
-const { requireSalonAccess } = require('../middleware/auth');
+const { requireSalonAccess, requireActiveSubscription } = require('../middleware/auth');
 
 
 function cleanPhone(phone) {
@@ -173,7 +173,7 @@ router.get('/appointments/by-phone', async (req, res) => {
 
 // ── GET appointments ─────────────────────────────────────────
 // Gérant: /api/salons/:salonId/appointments
-router.get('/:salonId/appointments', requireSalonAccess, async (req, res) => {
+router.get('/:salonId/appointments', requireSalonAccess, requireActiveSubscription, async (req, res) => {
   try {
     const { date, status, type } = req.query;
     let q = `
@@ -211,7 +211,7 @@ q += ' ORDER BY a.appt_date DESC, a.appt_time ASC';
 });
 
 // ── GET today dashboard ──────────────────────────────────────
-router.get('/:salonId/appointments/today', requireSalonAccess, async (req, res) => {
+router.get('/:salonId/appointments/today', requireSalonAccess, requireActiveSubscription, async (req, res) => {
   try {
     const today = new Date().toISOString().slice(0, 10);
 
@@ -426,7 +426,7 @@ router.post('/:salonId/appointments', async (req, res) => {
 });
 
 // ── POST walk-in ─────────────────────────────────────────────
-router.post('/:salonId/appointments/walkin', requireSalonAccess, async (req, res) => {
+router.post('/:salonId/appointments/walkin', requireSalonAccess, requireActiveSubscription, async (req, res) => {
   try {
     const {
       clientName,
@@ -499,7 +499,7 @@ router.post('/:salonId/appointments/walkin', requireSalonAccess, async (req, res
 });
 
 // ── UPDATE status ────────────────────────────────────────────
-router.patch('/:salonId/appointments/:id/status', requireSalonAccess, async (req, res) => {
+router.patch('/:salonId/appointments/:id/status', requireSalonAccess, requireActiveSubscription, async (req, res) => {
   try {
     const { status } = req.body;
 

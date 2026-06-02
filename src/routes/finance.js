@@ -196,9 +196,14 @@ router.get('/:salonId/finance/summary', requireSalonAccess, requireProPlan, asyn
           COALESCE(st.name, 'Non assigné') AS staff_name,
           COUNT(a.id) AS appointments,
           COALESCE(SUM(a.total),0) AS revenue,
-          COALESCE(MAX(st.commission_rate), 0.30) AS commission_rate
+          COALESCE(
+            NULLIF(MAX(st.commission_rate), 0),
+            MAX(r.default_staff_commission_rate),
+            0.50
+          ) AS commission_rate
          FROM appointments a
          LEFT JOIN staff st ON st.id = a.staff_id
+         LEFT JOIN salon_rules r ON r.salon_id = a.salon_id
          ${staffWhere}
          GROUP BY COALESCE(st.name, 'Non assigné')
          ORDER BY revenue DESC`,
@@ -236,18 +241,26 @@ router.get('/:salonId/finance/summary', requireSalonAccess, requireProPlan, asyn
     const commissions = staff.reduce((sum, s) => sum + Number(s.commission || 0), 0);
     const profit = revenue - expenses - commissions;
 
+    const expensesByType = expenseByTypeRes.rows.map(r => ({ type: r.type, total: Number(r.total || 0) }));
+    if (commissions > 0) {
+      expensesByType.unshift({ type: 'Personnel', category: 'Personnel', total: commissions, virtual: true });
+    }
+
     res.json({
       period,
       summary: {
         revenue,
         expenses,
+        staffPayments: commissions,
+        personnelPayments: commissions,
         commissions,
+        totalCharges: expenses + commissions,
         profit,
         margin: revenue ? Math.round((profit / revenue) * 100) : 0,
         appointments: Number(revenueRes.rows[0].appointments || 0)
       },
       staff,
-      expensesByType: expenseByTypeRes.rows.map(r => ({ type: r.type, total: Number(r.total || 0) }))
+      expensesByType
     });
   } catch (err) {
     console.error('GET finance summary error:', err);

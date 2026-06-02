@@ -12,8 +12,15 @@ const DEFAULT_RULES = {
   loyalty_required_visits: 10,
   loyalty_reward_type: 'free_service',
   loyalty_reward_value: 100,
-  loyalty_valid_days: 60
+  loyalty_valid_days: 60,
+  default_staff_commission_rate: 0.50
 };
+
+function normalizeRate(value) {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return n > 1 ? n / 100 : n;
+}
 
 async function ensureRules(salonId) {
   const { rows } = await pool.query(
@@ -28,9 +35,10 @@ async function ensureRules(salonId) {
       loyalty_required_visits,
       loyalty_reward_type,
       loyalty_reward_value,
-      loyalty_valid_days
+      loyalty_valid_days,
+      default_staff_commission_rate
     )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
     ON CONFLICT (salon_id) DO NOTHING
     RETURNING *`,
     [
@@ -44,7 +52,8 @@ async function ensureRules(salonId) {
       DEFAULT_RULES.loyalty_required_visits,
       DEFAULT_RULES.loyalty_reward_type,
       DEFAULT_RULES.loyalty_reward_value,
-      DEFAULT_RULES.loyalty_valid_days
+      DEFAULT_RULES.loyalty_valid_days,
+      DEFAULT_RULES.default_staff_commission_rate
     ]
   );
 
@@ -81,7 +90,9 @@ router.put('/:salonId/rules', requireSalonAccess, requireProPlan, async (req, re
       loyalty_required_visits,
       loyalty_reward_type,
       loyalty_reward_value,
-      loyalty_valid_days
+      loyalty_valid_days,
+      default_staff_commission_rate,
+      defaultStaffCommissionRate
     } = req.body;
 
     const { rows } = await pool.query(
@@ -96,8 +107,9 @@ router.put('/:salonId/rules', requireSalonAccess, requireProPlan, async (req, re
          loyalty_reward_type = COALESCE($8, loyalty_reward_type),
          loyalty_reward_value = COALESCE($9, loyalty_reward_value),
          loyalty_valid_days = COALESCE($10, loyalty_valid_days),
+         default_staff_commission_rate = COALESCE($11, default_staff_commission_rate),
          updated_at = NOW()
-       WHERE salon_id = $11
+       WHERE salon_id = $12
        RETURNING *`,
       [
         typeof no_show_enabled === 'boolean' ? no_show_enabled : null,
@@ -110,6 +122,9 @@ router.put('/:salonId/rules', requireSalonAccess, requireProPlan, async (req, re
         loyalty_reward_type || null,
         loyalty_reward_value !== undefined ? Number(loyalty_reward_value) : null,
         loyalty_valid_days ? Number(loyalty_valid_days) : null,
+        default_staff_commission_rate !== undefined || defaultStaffCommissionRate !== undefined
+          ? normalizeRate(default_staff_commission_rate ?? defaultStaffCommissionRate)
+          : null,
         salonId
       ]
     );

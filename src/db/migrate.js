@@ -32,6 +32,8 @@ lng         DOUBLE PRECISION,
 phone       TEXT,
 plan        TEXT DEFAULT 'starter',
         subscription_status TEXT DEFAULT 'active',
+        subscription_due_at TIMESTAMPTZ,
+        subscription_blocked_reason TEXT,
         created_at  TIMESTAMPTZ DEFAULT NOW()
       );
     `);
@@ -44,6 +46,9 @@ await client.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS plan TEXT DEFAUL
 await client.query(`UPDATE salons SET plan = 'starter' WHERE plan IS NULL OR plan = '';`);
 await client.query(`ALTER TABLE salons ALTER COLUMN plan SET DEFAULT 'starter';`);
 await client.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'active';`);
+await client.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS subscription_due_at TIMESTAMPTZ;`);
+await client.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS subscription_blocked_reason TEXT;`);
+await client.query(`UPDATE salons SET subscription_status = 'active' WHERE subscription_status IS NULL OR subscription_status = '';`);
     // ── SERVICES ─────────────────────────────────────────────
     await client.query(`
       CREATE TABLE IF NOT EXISTS services (
@@ -64,9 +69,20 @@ await client.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS subscription_sta
         name        TEXT NOT NULL,
         phone       TEXT DEFAULT '',
         active      BOOLEAN DEFAULT true,
+        role        TEXT DEFAULT '',
+        commission_rate NUMERIC(5,4),
+        username    TEXT UNIQUE,
+        password_hash TEXT,
+        account_active BOOLEAN DEFAULT false,
         created_at  TIMESTAMPTZ DEFAULT NOW()
       );
     `);
+
+    await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS role TEXT DEFAULT '';`);
+    await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(5,4);`);
+    await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS username TEXT UNIQUE;`);
+    await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS password_hash TEXT;`);
+    await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS account_active BOOLEAN DEFAULT false;`);
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS staff_services (
@@ -133,6 +149,75 @@ await client.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS subscription_sta
       );
     `);
 
+
+    // ── RULES / NO-SHOW / LOYALTY ────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS salon_rules (
+        salon_id TEXT PRIMARY KEY REFERENCES salons(id) ON DELETE CASCADE,
+        no_show_enabled BOOLEAN DEFAULT true,
+        no_show_limit INT DEFAULT 1,
+        no_show_window_days INT DEFAULT 30,
+        ban_duration_days INT DEFAULT 30,
+        ban_message TEXT DEFAULT 'Ce numéro est temporairement bloqué suite à une réservation non honorée. Veuillez contacter le salon.',
+        loyalty_enabled BOOLEAN DEFAULT true,
+        loyalty_required_visits INT DEFAULT 10,
+        loyalty_reward_type TEXT DEFAULT 'free_service',
+        loyalty_reward_value NUMERIC(8,2) DEFAULT 100,
+        loyalty_valid_days INT DEFAULT 60,
+        default_staff_commission_rate NUMERIC(5,4) DEFAULT 0.50,
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await client.query(`ALTER TABLE salon_rules ADD COLUMN IF NOT EXISTS default_staff_commission_rate NUMERIC(5,4) DEFAULT 0.50;`);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS banned_clients (
+        id SERIAL PRIMARY KEY,
+        salon_id TEXT NOT NULL REFERENCES salons(id) ON DELETE CASCADE,
+        phone TEXT NOT NULL,
+        client_name TEXT DEFAULT '',
+        reason TEXT DEFAULT 'no_show',
+        no_show_count INT DEFAULT 0,
+        banned_until DATE,
+        active BOOLEAN DEFAULT true,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS loyalty_progress (
+        salon_id TEXT NOT NULL REFERENCES salons(id) ON DELETE CASCADE,
+        phone TEXT NOT NULL,
+        client_name TEXT DEFAULT '',
+        visits_count INT DEFAULT 0,
+        reward_status TEXT DEFAULT 'progress',
+        reward_type TEXT DEFAULT 'free_service',
+        reward_value NUMERIC(8,2),
+        earned_at TIMESTAMPTZ,
+        expires_at TIMESTAMPTZ,
+        used_at TIMESTAMPTZ,
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        PRIMARY KEY (salon_id, phone)
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS expenses (
+        id SERIAL PRIMARY KEY,
+        salon_id TEXT NOT NULL REFERENCES salons(id) ON DELETE CASCADE,
+        type TEXT DEFAULT 'Autre',
+        category TEXT DEFAULT 'Autre',
+        subcategory TEXT DEFAULT '',
+        amount NUMERIC(8,2) NOT NULL DEFAULT 0,
+        expense_date DATE NOT NULL DEFAULT CURRENT_DATE,
+        description TEXT DEFAULT '',
+        receipt_img TEXT,
+        staff_id INT REFERENCES staff(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
     // ── SUBSCRIPTIONS / PAYMENTS ──────────────────────────────
     await client.query(`
       CREATE TABLE IF NOT EXISTS subscriptions (
@@ -169,6 +254,10 @@ await client.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS subscription_sta
     await client.query(`CREATE INDEX IF NOT EXISTS idx_review_salon ON reviews(salon_id);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_sub_salon ON subscriptions(salon_id);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_salons_plan ON salons(plan);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_salons_subscription_status ON salons(subscription_status);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_staff_username ON staff(username);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_expenses_salon_date ON expenses(salon_id, expense_date);`);
+
 
     // Better indexes for booking / staff scheduling performance
     await client.query(`

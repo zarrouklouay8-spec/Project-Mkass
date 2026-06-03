@@ -55,7 +55,17 @@ function requireStaffAccount(req, res, next) {
   });
 }
 
+async function ensureSalonAccessSchema() {
+  await pool.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'starter';`);
+  await pool.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'active';`);
+  await pool.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS subscription_due_at TIMESTAMPTZ;`);
+  await pool.query(`ALTER TABLE salons ADD COLUMN IF NOT EXISTS subscription_blocked_reason TEXT;`);
+  await pool.query(`UPDATE salons SET plan = 'starter' WHERE plan IS NULL OR plan = '';`);
+  await pool.query(`UPDATE salons SET subscription_status = 'active' WHERE subscription_status IS NULL OR subscription_status = '';`);
+}
+
 async function getSalonPlan(salonId) {
+  await ensureSalonAccessSchema();
   const { rows } = await pool.query(
     `SELECT
        COALESCE(plan, 'starter') AS plan,
@@ -159,4 +169,5 @@ module.exports = {
   requireActiveSubscription,
   requireProPlan,
   getSalonPlan,
+  ensureSalonAccessSchema,
 };

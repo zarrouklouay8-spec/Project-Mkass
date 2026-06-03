@@ -131,15 +131,8 @@ router.post('/:salonId/staff', requireSalonAccess, requireProPlan, async (req, r
 
     const finalUsername = username ? String(username).toLowerCase().trim() : null;
     const finalPasswordHash = password ? await bcrypt.hash(String(password), 10) : null;
-
-    // UX safety: when a gérant creates a personnel login with username + password,
-    // activate the limited account automatically. The frontend used to default the
-    // account selector to false, which created valid-looking accounts that could not log in.
-    const requestedAccountActive = account_active ?? accountActive;
-    const hasLoginCredentials = Boolean(finalUsername && finalPasswordHash);
-    const finalAccountActive = requestedAccountActive === undefined
-      ? hasLoginCredentials
-      : Boolean(requestedAccountActive || hasLoginCredentials);
+    const explicitAccountActive = account_active ?? accountActive;
+    const finalAccountActive = password ? true : Boolean(explicitAccountActive ?? (finalUsername && finalPasswordHash));
 
     const { rows } = await pool.query(
       `INSERT INTO staff (salon_id, name, phone, role, active, commission_rate, username, password_hash, account_active)
@@ -161,6 +154,9 @@ router.post('/:salonId/staff', requireSalonAccess, requireProPlan, async (req, r
     await seedDefaultHours(rows[0].id);
     res.status(201).json(rows[0]);
   } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Ce login personnel existe déjà. Choisissez un autre login.' });
+    }
     return sendServerError(res, 'POST staff error:', err);
   }
 });
@@ -173,12 +169,10 @@ router.put('/:salonId/staff/:staffId', requireSalonAccess, requireProPlan, async
     const { name, phone, role, active, commission_rate, commissionRate, username, password, account_active, accountActive } = req.body;
     const finalUsername = username !== undefined ? String(username || '').toLowerCase().trim() || null : undefined;
     const finalPasswordHash = password ? await bcrypt.hash(String(password), 10) : undefined;
-
-    // If a new password is entered, enable the personnel account automatically.
-    // This prevents the UI from saving a password while leaving the account disabled.
-    const finalAccountActive = account_active !== undefined || accountActive !== undefined
-      ? Boolean((account_active ?? accountActive) || finalPasswordHash)
-      : (finalPasswordHash ? true : undefined);
+    const explicitAccountActive = account_active ?? accountActive;
+    const finalAccountActive = password
+      ? true
+      : (account_active !== undefined || accountActive !== undefined ? Boolean(explicitAccountActive) : undefined);
 
     const { rows } = await pool.query(
       `UPDATE staff SET
@@ -210,6 +204,9 @@ router.put('/:salonId/staff/:staffId', requireSalonAccess, requireProPlan, async
     await seedDefaultHours(staffId);
     res.json(rows[0]);
   } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Ce login personnel existe déjà. Choisissez un autre login.' });
+    }
     return sendServerError(res, 'PUT staff error:', err);
   }
 });

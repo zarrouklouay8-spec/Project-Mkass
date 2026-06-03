@@ -1,6 +1,3 @@
-// src/routes/staff.js
-// REAL PERSONNEL FIX v2026-06-03
-// Fixes staff save/list reliability and returns explicit errors for the Personnel screen.
 const router = require('express').Router();
 const pool = require('../db/pool');
 const bcrypt = require('bcryptjs');
@@ -27,7 +24,7 @@ async function ensureStaffSchema() {
       role TEXT DEFAULT '',
       active BOOLEAN DEFAULT true,
       commission_rate NUMERIC(5,4),
-      username TEXT,
+      username TEXT UNIQUE,
       password_hash TEXT,
       account_active BOOLEAN DEFAULT false,
       created_at TIMESTAMPTZ DEFAULT NOW()
@@ -37,7 +34,7 @@ async function ensureStaffSchema() {
     ALTER TABLE staff ADD COLUMN IF NOT EXISTS role TEXT DEFAULT '';
     ALTER TABLE staff ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;
     ALTER TABLE staff ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(5,4);
-    ALTER TABLE staff ADD COLUMN IF NOT EXISTS username TEXT;
+    ALTER TABLE staff ADD COLUMN IF NOT EXISTS username TEXT UNIQUE;
     ALTER TABLE staff ADD COLUMN IF NOT EXISTS password_hash TEXT;
     ALTER TABLE staff ADD COLUMN IF NOT EXISTS account_active BOOLEAN DEFAULT false;
     ALTER TABLE staff ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
@@ -62,10 +59,6 @@ async function ensureStaffSchema() {
 
     ALTER TABLE appointments ADD COLUMN IF NOT EXISTS staff_id INT REFERENCES staff(id) ON DELETE SET NULL;
     ALTER TABLE appointments ADD COLUMN IF NOT EXISTS duration_minutes INT DEFAULT 30;
-
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_staff_username_unique
-    ON staff (LOWER(username))
-    WHERE username IS NOT NULL AND username <> '';
   `);
 }
 
@@ -84,90 +77,9 @@ function sendServerError(res, label, err) {
   console.error(label, err);
   return res.status(500).json({
     error: 'Erreur serveur personnel',
-    code: err.code || 'STAFF_SERVER_ERROR',
-    details: err.message,
-    hint: 'Vérifiez npm run db:migrate, le plan Pro actif, et les logs Railway après POST staff error / GET staff error.'
+    details: err.message
   });
 }
-
-function normalizeStaffPayload(body) {
-  const username = body.username || body.login || body.staffUsername || body.staff_username || null;
-  const password = body.password || body.staffPassword || body.staff_password || null;
-  return {
-    name: body.name || body.fullName || body.full_name || '',
-    phone: body.phone || body.tel || '',
-    role: body.role || body.job || '',
-    active: body.active !== false && body.is_active !== false,
-    commission_rate: body.commission_rate ?? body.commissionRate ?? body.commission ?? null,
-    username: username ? String(username).toLowerCase().trim() : null,
-    password: password ? String(password) : null,
-    account_active: body.account_active ?? body.accountActive ?? body.accountEnabled ?? null,
-    serviceIds: Array.isArray(body.serviceIds) ? body.serviceIds : (Array.isArray(body.service_ids) ? body.service_ids : []),
-    hours: Array.isArray(body.hours) ? body.hours : []
-  };
-}
-
-async function replaceStaffServices(staffId, salonId, serviceIds, durationMinutes = 30, client = pool) {
-  const staffCheck = await client.query(
-    `SELECT id FROM staff WHERE id = $1 AND salon_id = $2`,
-    [staffId, salonId]
-  );
-  if (staffCheck.rowCount === 0) {
-    const err = new Error('Personnel introuvable');
-    err.statusCode = 404;
-    throw err;
-  }
-
-  await client.query(`DELETE FROM staff_services WHERE staff_id = $1`, [staffId]);
-  for (const rawId of serviceIds || []) {
-    const serviceId = Number(rawId);
-    if (!serviceId) continue;
-    await client.query(
-      `INSERT INTO staff_services (staff_id, service_id, duration_minutes)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (staff_id, service_id)
-       DO UPDATE SET duration_minutes = EXCLUDED.duration_minutes`,
-      [staffId, serviceId, Number(durationMinutes || 30)]
-    );
-  }
-}
-
-async function replaceStaffHours(staffId, salonId, hours, client = pool) {
-  const staffCheck = await client.query(
-    `SELECT id FROM staff WHERE id = $1 AND salon_id = $2`,
-    [staffId, salonId]
-  );
-  if (staffCheck.rowCount === 0) {
-    const err = new Error('Personnel introuvable');
-    err.statusCode = 404;
-    throw err;
-  }
-
-  const finalHours = Array.isArray(hours) && hours.length ? hours : [0,1,2,3,4,5,6].map(weekday => ({ weekday, start_time: '09:00', end_time: '23:59', active: true }));
-  for (const h of finalHours) {
-    await client.query(
-      `INSERT INTO staff_working_hours (staff_id, weekday, start_time, end_time, active)
-       VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (staff_id, weekday)
-       DO UPDATE SET start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time, active = EXCLUDED.active`,
-      [staffId, Number(h.weekday), cleanTime(h.start_time || h.startTime, '09:00'), cleanTime(h.end_time || h.endTime, '23:59'), h.active !== false]
-    );
-  }
-}
-
-
-// GET /api/salons/:salonId/staff-health
-// Use this from browser/Railway to verify the staff schema and access quickly.
-router.get('/:salonId/staff-health', requireSalonAccess, async (req, res) => {
-  try {
-    await ensureStaffSchema();
-    const salon = await getSalonPlan(req.params.salonId);
-    const count = await pool.query('SELECT COUNT(*)::int AS count FROM staff WHERE salon_id = $1', [req.params.salonId]);
-    res.json({ ok: true, salonId: req.params.salonId, plan: salon?.plan || 'starter', subscriptionStatus: salon?.subscription_status || 'active', staffCount: count.rows[0]?.count || 0 });
-  } catch (err) {
-    return sendServerError(res, 'GET staff health error:', err);
-  }
-});
 
 // Public staff list for booking selector: /api/salons/:salonId/public-staff
 // Starter salons should not expose staff selection; they use simple salon-wide booking.
@@ -213,13 +125,14 @@ router.get('/:salonId/staff', requireSalonAccess, requireProPlan, async (req, re
 router.post('/:salonId/staff', requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     await ensureStaffSchema();
-    const payload = normalizeStaffPayload(req.body || {});
-    const finalName = String(payload.name || '').trim();
+    const { name, phone, role, active, commission_rate, commissionRate, username, password, account_active, accountActive } = req.body;
+    const finalName = String(name || '').trim();
     if (!finalName) return res.status(400).json({ error: 'Nom du personnel obligatoire' });
 
-    const finalUsername = payload.username || null;
-    const finalPasswordHash = payload.password ? await bcrypt.hash(payload.password, 10) : null;
-    const finalAccountActive = payload.password ? true : Boolean(payload.account_active ?? (finalUsername && finalPasswordHash));
+    const finalUsername = username ? String(username).toLowerCase().trim() : null;
+    const finalPasswordHash = password ? await bcrypt.hash(String(password), 10) : null;
+    const explicitAccountActive = account_active ?? accountActive;
+    const finalAccountActive = password ? true : Boolean(explicitAccountActive ?? (finalUsername && finalPasswordHash));
 
     const { rows } = await pool.query(
       `INSERT INTO staff (salon_id, name, phone, role, active, commission_rate, username, password_hash, account_active)
@@ -228,10 +141,10 @@ router.post('/:salonId/staff', requireSalonAccess, requireProPlan, async (req, r
       [
         req.params.salonId,
         finalName,
-        String(payload.phone || '').trim(),
-        String(payload.role || '').trim(),
-        payload.active !== false,
-        payload.commission_rate !== null && payload.commission_rate !== undefined ? normalizeRate(payload.commission_rate) : null,
+        String(phone || '').trim(),
+        String(role || '').trim(),
+        active !== false,
+        commission_rate !== undefined || commissionRate !== undefined ? normalizeRate(commission_rate ?? commissionRate) : null,
         finalUsername,
         finalPasswordHash,
         finalAccountActive
@@ -239,8 +152,6 @@ router.post('/:salonId/staff', requireSalonAccess, requireProPlan, async (req, r
     );
 
     await seedDefaultHours(rows[0].id);
-    if (payload.serviceIds.length) await replaceStaffServices(rows[0].id, req.params.salonId, payload.serviceIds);
-    if (payload.hours.length) await replaceStaffHours(rows[0].id, req.params.salonId, payload.hours);
     res.status(201).json(rows[0]);
   } catch (err) {
     if (err.code === '23505') {
@@ -250,20 +161,112 @@ router.post('/:salonId/staff', requireSalonAccess, requireProPlan, async (req, r
   }
 });
 
+
+
+// POST /api/salons/:salonId/staff/full-save
+// Robust one-call save used by the frontend Personnel screen: staff + services + hours.
+router.post('/:salonId/staff/full-save', requireSalonAccess, requireProPlan, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await ensureStaffSchema();
+    const { salonId } = req.params;
+    const body = req.body || {};
+    const staffId = body.id || body.staffId || body.staff_id || null;
+    const name = String(body.name || '').trim();
+    if (!name) return res.status(400).json({ error: 'Nom du personnel obligatoire' });
+
+    const phone = String(body.phone || '').trim();
+    const role = String(body.role || '').trim();
+    const active = body.active !== false;
+    const commissionRate = normalizeRate(body.commission_rate ?? body.commissionRate ?? 0);
+    const username = body.username ? String(body.username).toLowerCase().trim() : null;
+    const passwordHash = body.password ? await bcrypt.hash(String(body.password), 10) : null;
+    const accountActive = body.password ? true : Boolean(body.account_active ?? body.accountActive ?? username);
+    const serviceIds = Array.isArray(body.serviceIds)
+      ? body.serviceIds.map(Number).filter(Boolean)
+      : [];
+    const hours = Array.isArray(body.hours) ? body.hours : [];
+
+    await client.query('BEGIN');
+
+    let saved;
+    if (staffId) {
+      const { rows } = await client.query(
+        `UPDATE staff SET
+           name = $1,
+           phone = $2,
+           role = $3,
+           active = $4,
+           commission_rate = $5,
+           username = $6,
+           password_hash = COALESCE($7, password_hash),
+           account_active = $8
+         WHERE id = $9 AND salon_id = $10
+         RETURNING id, salon_id, name, phone, role, active, commission_rate, username, account_active, created_at`,
+        [name, phone, role, active, commissionRate, username, passwordHash, accountActive, staffId, salonId]
+      );
+      if (!rows.length) throw Object.assign(new Error('Personnel introuvable'), { statusCode: 404 });
+      saved = rows[0];
+    } else {
+      const { rows } = await client.query(
+        `INSERT INTO staff (salon_id, name, phone, role, active, commission_rate, username, password_hash, account_active)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+         RETURNING id, salon_id, name, phone, role, active, commission_rate, username, account_active, created_at`,
+        [salonId, name, phone, role, active, commissionRate, username, passwordHash, accountActive]
+      );
+      saved = rows[0];
+    }
+
+    await client.query(`DELETE FROM staff_services WHERE staff_id = $1`, [saved.id]);
+    for (const serviceId of serviceIds) {
+      const serviceCheck = await client.query(`SELECT id FROM services WHERE id = $1 AND salon_id = $2`, [serviceId, salonId]);
+      if (serviceCheck.rowCount === 0) continue;
+      await client.query(
+        `INSERT INTO staff_services (staff_id, service_id, duration_minutes)
+         VALUES ($1,$2,$3)
+         ON CONFLICT (staff_id, service_id)
+         DO UPDATE SET duration_minutes = EXCLUDED.duration_minutes`,
+        [saved.id, serviceId, Number(body.durationMinutes || body.duration_minutes || 30) || 30]
+      );
+    }
+
+    const finalHours = hours.length ? hours : [0,1,2,3,4,5,6].map(weekday => ({ weekday, active: true, start_time: '09:00', end_time: '23:59' }));
+    for (const h of finalHours) {
+      const weekday = Number(h.weekday);
+      if (weekday < 0 || weekday > 6) continue;
+      await client.query(
+        `INSERT INTO staff_working_hours (staff_id, weekday, start_time, end_time, active)
+         VALUES ($1,$2,$3,$4,$5)
+         ON CONFLICT (staff_id, weekday)
+         DO UPDATE SET start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time, active = EXCLUDED.active`,
+        [saved.id, weekday, cleanTime(h.start_time || h.startTime, '09:00'), cleanTime(h.end_time || h.endTime, '23:59'), h.active !== false]
+      );
+    }
+
+    await client.query('COMMIT');
+    return res.status(staffId ? 200 : 201).json(saved);
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    if (err.statusCode === 404) return res.status(404).json({ error: err.message });
+    if (err.code === '23505') return res.status(409).json({ error: 'Ce login personnel existe déjà. Choisissez un autre login.' });
+    return sendServerError(res, 'POST staff full-save error:', err);
+  } finally {
+    client.release();
+  }
+});
+
 // PUT /api/salons/:salonId/staff/:staffId
 router.put('/:salonId/staff/:staffId', requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     await ensureStaffSchema();
     const { salonId, staffId } = req.params;
-    const payload = normalizeStaffPayload(req.body || {});
-    const rawBody = req.body || {};
-    const finalUsername = ('username' in rawBody || 'login' in rawBody || 'staffUsername' in rawBody || 'staff_username' in rawBody)
-      ? (payload.username || null)
-      : undefined;
-    const finalPasswordHash = payload.password ? await bcrypt.hash(payload.password, 10) : undefined;
-    const finalAccountActive = payload.password
+    const { name, phone, role, active, commission_rate, commissionRate, username, password, account_active, accountActive } = req.body;
+    const finalUsername = username !== undefined ? String(username || '').toLowerCase().trim() || null : undefined;
+    const finalPasswordHash = password ? await bcrypt.hash(String(password), 10) : undefined;
+    const explicitAccountActive = account_active ?? accountActive;
+    const finalAccountActive = password
       ? true
-      : (payload.account_active !== null && payload.account_active !== undefined ? Boolean(payload.account_active) : undefined);
+      : (account_active !== undefined || accountActive !== undefined ? Boolean(explicitAccountActive) : undefined);
 
     const { rows } = await pool.query(
       `UPDATE staff SET
@@ -278,11 +281,11 @@ router.put('/:salonId/staff/:staffId', requireSalonAccess, requireProPlan, async
        WHERE id = $9 AND salon_id = $10
        RETURNING id, salon_id, name, phone, role, active, commission_rate, username, account_active, created_at`,
       [
-        payload.name ? String(payload.name).trim() : null,
-        ('phone' in rawBody || 'tel' in rawBody) ? String(payload.phone || '').trim() : null,
-        ('role' in rawBody || 'job' in rawBody) ? String(payload.role || '').trim() : null,
-        ('active' in rawBody || 'is_active' in rawBody) ? payload.active : null,
-        payload.commission_rate !== null && payload.commission_rate !== undefined ? normalizeRate(payload.commission_rate) : null,
+        name !== undefined ? String(name).trim() : null,
+        phone !== undefined ? String(phone).trim() : null,
+        role !== undefined ? String(role).trim() : null,
+        typeof active === 'boolean' ? active : null,
+        commission_rate !== undefined || commissionRate !== undefined ? normalizeRate(commission_rate ?? commissionRate) : null,
         finalUsername === undefined ? null : finalUsername,
         finalPasswordHash === undefined ? null : finalPasswordHash,
         finalAccountActive === undefined ? null : finalAccountActive,
@@ -293,8 +296,6 @@ router.put('/:salonId/staff/:staffId', requireSalonAccess, requireProPlan, async
 
     if (!rows.length) return res.status(404).json({ error: 'Personnel introuvable' });
     await seedDefaultHours(staffId);
-    if (payload.serviceIds.length) await replaceStaffServices(staffId, salonId, payload.serviceIds);
-    if (payload.hours.length) await replaceStaffHours(staffId, salonId, payload.hours);
     res.json(rows[0]);
   } catch (err) {
     if (err.code === '23505') {
@@ -321,6 +322,100 @@ router.get('/:salonId/staff/:staffId/services', requireSalonAccess, requireProPl
     res.json(rows);
   } catch (err) {
     return sendServerError(res, 'GET staff services error:', err);
+  }
+});
+
+
+
+// POST /api/salons/:salonId/staff/full-save
+// Robust one-call save used by the frontend Personnel screen: staff + services + hours.
+router.post('/:salonId/staff/full-save', requireSalonAccess, requireProPlan, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await ensureStaffSchema();
+    const { salonId } = req.params;
+    const body = req.body || {};
+    const staffId = body.id || body.staffId || body.staff_id || null;
+    const name = String(body.name || '').trim();
+    if (!name) return res.status(400).json({ error: 'Nom du personnel obligatoire' });
+
+    const phone = String(body.phone || '').trim();
+    const role = String(body.role || '').trim();
+    const active = body.active !== false;
+    const commissionRate = normalizeRate(body.commission_rate ?? body.commissionRate ?? 0);
+    const username = body.username ? String(body.username).toLowerCase().trim() : null;
+    const passwordHash = body.password ? await bcrypt.hash(String(body.password), 10) : null;
+    const accountActive = body.password ? true : Boolean(body.account_active ?? body.accountActive ?? username);
+    const serviceIds = Array.isArray(body.serviceIds)
+      ? body.serviceIds.map(Number).filter(Boolean)
+      : [];
+    const hours = Array.isArray(body.hours) ? body.hours : [];
+
+    await client.query('BEGIN');
+
+    let saved;
+    if (staffId) {
+      const { rows } = await client.query(
+        `UPDATE staff SET
+           name = $1,
+           phone = $2,
+           role = $3,
+           active = $4,
+           commission_rate = $5,
+           username = $6,
+           password_hash = COALESCE($7, password_hash),
+           account_active = $8
+         WHERE id = $9 AND salon_id = $10
+         RETURNING id, salon_id, name, phone, role, active, commission_rate, username, account_active, created_at`,
+        [name, phone, role, active, commissionRate, username, passwordHash, accountActive, staffId, salonId]
+      );
+      if (!rows.length) throw Object.assign(new Error('Personnel introuvable'), { statusCode: 404 });
+      saved = rows[0];
+    } else {
+      const { rows } = await client.query(
+        `INSERT INTO staff (salon_id, name, phone, role, active, commission_rate, username, password_hash, account_active)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+         RETURNING id, salon_id, name, phone, role, active, commission_rate, username, account_active, created_at`,
+        [salonId, name, phone, role, active, commissionRate, username, passwordHash, accountActive]
+      );
+      saved = rows[0];
+    }
+
+    await client.query(`DELETE FROM staff_services WHERE staff_id = $1`, [saved.id]);
+    for (const serviceId of serviceIds) {
+      const serviceCheck = await client.query(`SELECT id FROM services WHERE id = $1 AND salon_id = $2`, [serviceId, salonId]);
+      if (serviceCheck.rowCount === 0) continue;
+      await client.query(
+        `INSERT INTO staff_services (staff_id, service_id, duration_minutes)
+         VALUES ($1,$2,$3)
+         ON CONFLICT (staff_id, service_id)
+         DO UPDATE SET duration_minutes = EXCLUDED.duration_minutes`,
+        [saved.id, serviceId, Number(body.durationMinutes || body.duration_minutes || 30) || 30]
+      );
+    }
+
+    const finalHours = hours.length ? hours : [0,1,2,3,4,5,6].map(weekday => ({ weekday, active: true, start_time: '09:00', end_time: '23:59' }));
+    for (const h of finalHours) {
+      const weekday = Number(h.weekday);
+      if (weekday < 0 || weekday > 6) continue;
+      await client.query(
+        `INSERT INTO staff_working_hours (staff_id, weekday, start_time, end_time, active)
+         VALUES ($1,$2,$3,$4,$5)
+         ON CONFLICT (staff_id, weekday)
+         DO UPDATE SET start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time, active = EXCLUDED.active`,
+        [saved.id, weekday, cleanTime(h.start_time || h.startTime, '09:00'), cleanTime(h.end_time || h.endTime, '23:59'), h.active !== false]
+      );
+    }
+
+    await client.query('COMMIT');
+    return res.status(staffId ? 200 : 201).json(saved);
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    if (err.statusCode === 404) return res.status(404).json({ error: err.message });
+    if (err.code === '23505') return res.status(409).json({ error: 'Ce login personnel existe déjà. Choisissez un autre login.' });
+    return sendServerError(res, 'POST staff full-save error:', err);
+  } finally {
+    client.release();
   }
 });
 

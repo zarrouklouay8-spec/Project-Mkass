@@ -80,7 +80,7 @@ await client.query(`UPDATE salons SET subscription_status = 'active' WHERE subsc
 
     await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS role TEXT DEFAULT '';`);
     await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(5,4);`);
-    await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS username TEXT UNIQUE;`);
+    await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS username TEXT;`);
     await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS password_hash TEXT;`);
     await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS account_active BOOLEAN DEFAULT false;`);
 
@@ -256,6 +256,7 @@ await client.query(`UPDATE salons SET subscription_status = 'active' WHERE subsc
     await client.query(`CREATE INDEX IF NOT EXISTS idx_salons_plan ON salons(plan);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_salons_subscription_status ON salons(subscription_status);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_staff_username ON staff(username);`);
+    await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_staff_username_unique ON staff (LOWER(username)) WHERE username IS NOT NULL AND username <> '';`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_expenses_salon_date ON expenses(salon_id, expense_date);`);
 
 

@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const pool = require('../db/pool');
-const { requireSalonAccess } = require('../middleware/auth');
+const bcrypt = require('bcryptjs');
+const { requireSalonAccess, requireStaffOrSalonAccess, requireStaffAccount, requireProPlan, getSalonPlan } = require('../middleware/auth');
 
 function normalizeRate(value) {
   const n = Number(value || 0);
@@ -22,14 +23,20 @@ async function ensureStaffSchema() {
       phone TEXT DEFAULT '',
       role TEXT DEFAULT '',
       active BOOLEAN DEFAULT true,
-      commission_rate NUMERIC(5,4) NOT NULL DEFAULT 0,
+      commission_rate NUMERIC(5,4),
+      username TEXT UNIQUE,
+      password_hash TEXT,
+      account_active BOOLEAN DEFAULT false,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
     ALTER TABLE staff ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';
     ALTER TABLE staff ADD COLUMN IF NOT EXISTS role TEXT DEFAULT '';
     ALTER TABLE staff ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;
-    ALTER TABLE staff ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(5,4) NOT NULL DEFAULT 0;
+    ALTER TABLE staff ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(5,4);
+    ALTER TABLE staff ADD COLUMN IF NOT EXISTS username TEXT UNIQUE;
+    ALTER TABLE staff ADD COLUMN IF NOT EXISTS password_hash TEXT;
+    ALTER TABLE staff ADD COLUMN IF NOT EXISTS account_active BOOLEAN DEFAULT false;
     ALTER TABLE staff ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 
     CREATE TABLE IF NOT EXISTS staff_services (
@@ -75,11 +82,17 @@ function sendServerError(res, label, err) {
 }
 
 // Public staff list for booking selector: /api/salons/:salonId/public-staff
+// Starter salons should not expose staff selection; they use simple salon-wide booking.
 router.get('/:salonId/public-staff', async (req, res) => {
   try {
+    const salon = await getSalonPlan(req.params.salonId);
+    if (!salon) return res.status(404).json({ error: 'Salon not found' });
+    if (String(salon.subscription_status || 'active').toLowerCase() !== 'active') return res.json([]);
+    if (String(salon.plan || 'starter').toLowerCase() !== 'pro') return res.json([]);
+
     await ensureStaffSchema();
     const { rows } = await pool.query(
-      `SELECT id, salon_id, name, phone, role, active, commission_rate, created_at
+      `SELECT id, salon_id, name, phone, role, active, commission_rate, username, account_active, created_at
        FROM staff
        WHERE salon_id = $1 AND active = true
        ORDER BY created_at ASC`,
@@ -92,11 +105,11 @@ router.get('/:salonId/public-staff', async (req, res) => {
 });
 
 // GET /api/salons/:salonId/staff
-router.get('/:salonId/staff', requireSalonAccess, async (req, res) => {
+router.get('/:salonId/staff', requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     await ensureStaffSchema();
     const { rows } = await pool.query(
-      `SELECT id, salon_id, name, phone, role, active, commission_rate, created_at
+      `SELECT id, salon_id, name, phone, role, active, commission_rate, username, account_active, created_at
        FROM staff
        WHERE salon_id = $1
        ORDER BY created_at ASC`,
@@ -109,24 +122,39 @@ router.get('/:salonId/staff', requireSalonAccess, async (req, res) => {
 });
 
 // POST /api/salons/:salonId/staff
-router.post('/:salonId/staff', requireSalonAccess, async (req, res) => {
+router.post('/:salonId/staff', requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     await ensureStaffSchema();
-    const { name, phone, role, active, commission_rate, commissionRate } = req.body;
+    const { name, phone, role, active, commission_rate, commissionRate, username, password, account_active, accountActive } = req.body;
     const finalName = String(name || '').trim();
     if (!finalName) return res.status(400).json({ error: 'Nom du personnel obligatoire' });
 
+    const finalUsername = username ? String(username).toLowerCase().trim() : null;
+    const finalPasswordHash = password ? await bcrypt.hash(String(password), 10) : null;
+
+    // UX safety: when a gérant creates a personnel login with username + password,
+    // activate the limited account automatically. The frontend used to default the
+    // account selector to false, which created valid-looking accounts that could not log in.
+    const requestedAccountActive = account_active ?? accountActive;
+    const hasLoginCredentials = Boolean(finalUsername && finalPasswordHash);
+    const finalAccountActive = requestedAccountActive === undefined
+      ? hasLoginCredentials
+      : Boolean(requestedAccountActive || hasLoginCredentials);
+
     const { rows } = await pool.query(
-      `INSERT INTO staff (salon_id, name, phone, role, active, commission_rate)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
+      `INSERT INTO staff (salon_id, name, phone, role, active, commission_rate, username, password_hash, account_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING id, salon_id, name, phone, role, active, commission_rate, username, account_active, created_at`,
       [
         req.params.salonId,
         finalName,
         String(phone || '').trim(),
         String(role || '').trim(),
         active !== false,
-        normalizeRate(commission_rate ?? commissionRate)
+        commission_rate !== undefined || commissionRate !== undefined ? normalizeRate(commission_rate ?? commissionRate) : null,
+        finalUsername,
+        finalPasswordHash,
+        finalAccountActive
       ]
     );
 
@@ -138,11 +166,19 @@ router.post('/:salonId/staff', requireSalonAccess, async (req, res) => {
 });
 
 // PUT /api/salons/:salonId/staff/:staffId
-router.put('/:salonId/staff/:staffId', requireSalonAccess, async (req, res) => {
+router.put('/:salonId/staff/:staffId', requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     await ensureStaffSchema();
     const { salonId, staffId } = req.params;
-    const { name, phone, role, active, commission_rate, commissionRate } = req.body;
+    const { name, phone, role, active, commission_rate, commissionRate, username, password, account_active, accountActive } = req.body;
+    const finalUsername = username !== undefined ? String(username || '').toLowerCase().trim() || null : undefined;
+    const finalPasswordHash = password ? await bcrypt.hash(String(password), 10) : undefined;
+
+    // If a new password is entered, enable the personnel account automatically.
+    // This prevents the UI from saving a password while leaving the account disabled.
+    const finalAccountActive = account_active !== undefined || accountActive !== undefined
+      ? Boolean((account_active ?? accountActive) || finalPasswordHash)
+      : (finalPasswordHash ? true : undefined);
 
     const { rows } = await pool.query(
       `UPDATE staff SET
@@ -150,15 +186,21 @@ router.put('/:salonId/staff/:staffId', requireSalonAccess, async (req, res) => {
          phone = COALESCE($2, phone),
          role = COALESCE($3, role),
          active = COALESCE($4, active),
-         commission_rate = COALESCE($5, commission_rate)
-       WHERE id = $6 AND salon_id = $7
-       RETURNING *`,
+         commission_rate = COALESCE($5, commission_rate),
+         username = COALESCE($6, username),
+         password_hash = COALESCE($7, password_hash),
+         account_active = COALESCE($8, account_active)
+       WHERE id = $9 AND salon_id = $10
+       RETURNING id, salon_id, name, phone, role, active, commission_rate, username, account_active, created_at`,
       [
         name !== undefined ? String(name).trim() : null,
         phone !== undefined ? String(phone).trim() : null,
         role !== undefined ? String(role).trim() : null,
         typeof active === 'boolean' ? active : null,
         commission_rate !== undefined || commissionRate !== undefined ? normalizeRate(commission_rate ?? commissionRate) : null,
+        finalUsername === undefined ? null : finalUsername,
+        finalPasswordHash === undefined ? null : finalPasswordHash,
+        finalAccountActive === undefined ? null : finalAccountActive,
         staffId,
         salonId
       ]
@@ -173,7 +215,7 @@ router.put('/:salonId/staff/:staffId', requireSalonAccess, async (req, res) => {
 });
 
 // GET /api/salons/:salonId/staff/:staffId/services
-router.get('/:salonId/staff/:staffId/services', requireSalonAccess, async (req, res) => {
+router.get('/:salonId/staff/:staffId/services', requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     await ensureStaffSchema();
     const { rows } = await pool.query(
@@ -193,7 +235,7 @@ router.get('/:salonId/staff/:staffId/services', requireSalonAccess, async (req, 
 });
 
 // PUT /api/salons/:salonId/staff/:staffId/services - replace all staff services
-router.put('/:salonId/staff/:staffId/services', requireSalonAccess, async (req, res) => {
+router.put('/:salonId/staff/:staffId/services', requireSalonAccess, requireProPlan, async (req, res) => {
   const client = await pool.connect();
   try {
     await ensureStaffSchema();
@@ -247,7 +289,7 @@ router.put('/:salonId/staff/:staffId/services', requireSalonAccess, async (req, 
 });
 
 // GET /api/salons/:salonId/staff/:staffId/hours
-router.get('/:salonId/staff/:staffId/hours', requireSalonAccess, async (req, res) => {
+router.get('/:salonId/staff/:staffId/hours', requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     await ensureStaffSchema();
     const { salonId, staffId } = req.params;
@@ -272,7 +314,7 @@ router.get('/:salonId/staff/:staffId/hours', requireSalonAccess, async (req, res
 });
 
 // POST /api/salons/:salonId/staff/:staffId/hours
-router.post('/:salonId/staff/:staffId/hours', requireSalonAccess, async (req, res) => {
+router.post('/:salonId/staff/:staffId/hours', requireSalonAccess, requireProPlan, async (req, res) => {
   const client = await pool.connect();
   try {
     await ensureStaffSchema();
@@ -327,7 +369,7 @@ router.post('/:salonId/staff/:staffId/hours', requireSalonAccess, async (req, re
 });
 
 // DELETE /api/salons/:salonId/staff/:staffId
-router.delete('/:salonId/staff/:staffId', requireSalonAccess, async (req, res) => {
+router.delete('/:salonId/staff/:staffId', requireSalonAccess, requireProPlan, async (req, res) => {
   try {
     await ensureStaffSchema();
     const { salonId, staffId } = req.params;
@@ -340,6 +382,110 @@ router.delete('/:salonId/staff/:staffId', requireSalonAccess, async (req, res) =
     res.json({ ok: true, message: 'Personnel supprimé' });
   } catch (err) {
     return sendServerError(res, 'DELETE staff error:', err);
+  }
+});
+
+
+// GET /api/salons/:salonId/staff/me/appointments
+// Limited personnel account: sees only own schedule.
+router.get('/:salonId/staff/me/appointments', requireStaffOrSalonAccess, requireProPlan, async (req, res) => {
+  try {
+    await ensureStaffSchema();
+    const { salonId } = req.params;
+    const staffId = req.user.role === 'staff' ? req.user.staffId : Number(req.query.staffId || req.body.staffId);
+    if (!staffId) return res.status(400).json({ error: 'staffId is required' });
+
+    if (req.user.role === 'staff' && Number(req.user.staffId) !== Number(staffId)) {
+      return res.status(403).json({ error: 'Personnel limité à son propre planning' });
+    }
+
+    const { date, status } = req.query;
+    const params = [salonId, staffId];
+    let sql = `SELECT a.*, st.name AS staff_name
+               FROM appointments a
+               LEFT JOIN staff st ON st.id = a.staff_id
+               WHERE a.salon_id = $1 AND a.staff_id = $2`;
+    if (date) { params.push(date); sql += ` AND a.appt_date = $${params.length}`; }
+    if (status) { params.push(status); sql += ` AND a.status = $${params.length}`; }
+    sql += ` ORDER BY a.appt_date ASC, a.appt_time ASC`;
+
+    const { rows } = await pool.query(sql, params);
+    res.json(rows);
+  } catch (err) {
+    return sendServerError(res, 'GET staff me appointments error:', err);
+  }
+});
+
+// PATCH /api/salons/:salonId/staff/me/appointments/:id/status
+// Personnel can confirm or mark own appointments done/no-show.
+router.patch('/:salonId/staff/me/appointments/:id/status', requireStaffOrSalonAccess, requireProPlan, async (req, res) => {
+  try {
+    const allowed = new Set(['confirmed', 'done', 'no_show']);
+    const status = String(req.body.status || '').trim();
+    if (!allowed.has(status)) {
+      return res.status(400).json({ error: 'Status autorisé: confirmed, done, no_show' });
+    }
+
+    const staffId = req.user.role === 'staff' ? req.user.staffId : Number(req.body.staffId || req.query.staffId);
+    if (!staffId) return res.status(400).json({ error: 'staffId is required' });
+
+    const { rows } = await pool.query(
+      `UPDATE appointments
+       SET status = $1
+       WHERE id = $2 AND salon_id = $3 AND staff_id = $4
+       RETURNING *`,
+      [status, req.params.id, req.params.salonId, staffId]
+    );
+
+    if (!rows.length) return res.status(404).json({ error: 'Rendez-vous introuvable pour ce personnel' });
+    res.json(rows[0]);
+  } catch (err) {
+    return sendServerError(res, 'PATCH staff me appointment status error:', err);
+  }
+});
+
+// POST /api/salons/:salonId/staff/me/walkin
+// Personnel can add walk-in only for themselves.
+router.post('/:salonId/staff/me/walkin', requireStaffOrSalonAccess, requireProPlan, async (req, res) => {
+  try {
+    const staffId = req.user.role === 'staff' ? req.user.staffId : Number(req.body.staffId || req.query.staffId);
+    if (!staffId) return res.status(400).json({ error: 'staffId is required' });
+
+    const { services, prices, total, payMode, paymentMode, payment, clientName, customerName, customer_name, name } = req.body;
+    if (!services?.length) return res.status(400).json({ error: 'services are required' });
+
+    const finalClientName = [clientName, customerName, customer_name, name]
+      .find(v => typeof v === 'string' && v.trim() !== '') || 'Client';
+    const finalPayMode = payMode || paymentMode || payment || 'cash';
+    const now = new Date();
+    const date = now.toISOString().slice(0, 10);
+    const time = now.toTimeString().slice(0, 5);
+    const id = 'MKS-WI-' + Date.now();
+
+    const { rows } = await pool.query(
+      `INSERT INTO appointments (
+        id, salon_id, client_name, client_phone, services, prices, total,
+        appt_date, appt_time, status, note, type, pay_mode, staff_id, duration_minutes
+       ) VALUES ($1,$2,$3,'',$4,$5,$6,$7,$8,'done','','walkin',$9,$10,$11)
+       RETURNING *`,
+      [
+        id,
+        req.params.salonId,
+        finalClientName,
+        services,
+        prices || [],
+        Number(total || 0),
+        date,
+        time,
+        finalPayMode,
+        staffId,
+        Number(req.body.durationMinutes || req.body.duration_minutes || 30)
+      ]
+    );
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    return sendServerError(res, 'POST staff me walkin error:', err);
   }
 });
 

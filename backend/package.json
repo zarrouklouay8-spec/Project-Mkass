@@ -2,12 +2,12 @@
   "name": "Project-mkass",
   "version": "1.0.0",
   "description": "Mkass salon booking platform — REST API",
-  "main": "backend/src/index.js",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node backend/src/index.js",
-    "dev": "nodemon backend/src/index.js",
-    "db:migrate": "node backend/src/db/migrate.js",
-    "db:seed": "node backend/src/db/seed.js"
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "db:migrate": "node src/db/migrate.js",
+    "db:seed": "node src/db/seed.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

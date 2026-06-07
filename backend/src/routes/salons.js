@@ -15,6 +15,113 @@ function overlaps(startA, durationA, startB, durationB) {
   return startA < endB && startB < endA;
 }
 
+
+let schedulingSchemaReadyPromise = null;
+
+async function ensureSchedulingSchema() {
+  if (schedulingSchemaReadyPromise) return schedulingSchemaReadyPromise;
+
+  schedulingSchemaReadyPromise = (async () => {
+    // Make the slots/hours routes tolerant of older test/prod databases.
+    // The canonical column used by current code is `weekday`; older fixes used `day_of_week`.
+    await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;`);
+    await pool.query(`UPDATE services SET active = true WHERE active IS NULL;`);
+
+    await pool.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;`);
+    await pool.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS account_active BOOLEAN DEFAULT false;`);
+    await pool.query(`UPDATE staff SET active = true WHERE active IS NULL;`);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS staff_services (
+        id SERIAL PRIMARY KEY,
+        staff_id INT NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+        service_id INT NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+        duration_minutes INT NOT NULL DEFAULT 30,
+        active BOOLEAN DEFAULT true
+      );
+    `);
+    await pool.query(`ALTER TABLE staff_services ADD COLUMN IF NOT EXISTS duration_minutes INT DEFAULT 30;`);
+    await pool.query(`ALTER TABLE staff_services ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;`);
+    await pool.query(`UPDATE staff_services SET duration_minutes = 30 WHERE duration_minutes IS NULL;`);
+    await pool.query(`UPDATE staff_services SET active = true WHERE active IS NULL;`);
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_staff_services_staff_service_unique ON staff_services(staff_id, service_id);`);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS staff_working_hours (
+        id SERIAL PRIMARY KEY,
+        staff_id INT NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+        weekday INT,
+        day_of_week INT,
+        start_time TEXT DEFAULT '09:00',
+        end_time TEXT DEFAULT '23:59',
+        active BOOLEAN DEFAULT true
+      );
+    `);
+    await pool.query(`ALTER TABLE staff_working_hours ADD COLUMN IF NOT EXISTS weekday INT;`);
+    await pool.query(`ALTER TABLE staff_working_hours ADD COLUMN IF NOT EXISTS day_of_week INT;`);
+    await pool.query(`ALTER TABLE staff_working_hours ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;`);
+    await pool.query(`ALTER TABLE staff_working_hours ADD COLUMN IF NOT EXISTS start_time TEXT DEFAULT '09:00';`);
+    await pool.query(`ALTER TABLE staff_working_hours ADD COLUMN IF NOT EXISTS end_time TEXT DEFAULT '23:59';`);
+    await pool.query(`UPDATE staff_working_hours SET weekday = COALESCE(weekday, day_of_week, 0);`);
+    await pool.query(`UPDATE staff_working_hours SET day_of_week = COALESCE(day_of_week, weekday, 0);`);
+    await pool.query(`UPDATE staff_working_hours SET active = true WHERE active IS NULL;`);
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_staff_working_hours_staff_weekday_unique ON staff_working_hours(staff_id, weekday);`);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS salon_opening_hours (
+        id SERIAL PRIMARY KEY,
+        salon_id TEXT NOT NULL REFERENCES salons(id) ON DELETE CASCADE,
+        weekday INT,
+        day_of_week INT,
+        active BOOLEAN DEFAULT true,
+        is_open BOOLEAN DEFAULT true,
+        start_time TEXT DEFAULT '09:00',
+        end_time TEXT DEFAULT '23:59',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await pool.query(`ALTER TABLE salon_opening_hours ADD COLUMN IF NOT EXISTS weekday INT;`);
+    await pool.query(`ALTER TABLE salon_opening_hours ADD COLUMN IF NOT EXISTS day_of_week INT;`);
+    await pool.query(`ALTER TABLE salon_opening_hours ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;`);
+    await pool.query(`ALTER TABLE salon_opening_hours ADD COLUMN IF NOT EXISTS is_open BOOLEAN DEFAULT true;`);
+    await pool.query(`ALTER TABLE salon_opening_hours ADD COLUMN IF NOT EXISTS start_time TEXT DEFAULT '09:00';`);
+    await pool.query(`ALTER TABLE salon_opening_hours ADD COLUMN IF NOT EXISTS end_time TEXT DEFAULT '23:59';`);
+    await pool.query(`ALTER TABLE salon_opening_hours ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();`);
+    await pool.query(`UPDATE salon_opening_hours SET weekday = COALESCE(weekday, day_of_week, 0);`);
+    await pool.query(`UPDATE salon_opening_hours SET day_of_week = COALESCE(day_of_week, weekday, 0);`);
+    await pool.query(`UPDATE salon_opening_hours SET active = COALESCE(active, is_open, true);`);
+    await pool.query(`UPDATE salon_opening_hours SET is_open = COALESCE(is_open, active, true);`);
+    await pool.query(`UPDATE salon_opening_hours SET start_time = COALESCE(NULLIF(start_time, ''), '09:00');`);
+    await pool.query(`UPDATE salon_opening_hours SET end_time = COALESCE(NULLIF(end_time, ''), '23:59');`);
+    await pool.query(`
+      INSERT INTO salon_opening_hours (salon_id, weekday, day_of_week, active, is_open, start_time, end_time)
+      SELECT s.id, d.weekday, d.weekday, true, true, '09:00', '23:59'
+      FROM salons s
+      CROSS JOIN (
+        SELECT 0 AS weekday UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL
+        SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6
+      ) d
+      WHERE NOT EXISTS (
+        SELECT 1 FROM salon_opening_hours h
+        WHERE h.salon_id = s.id AND COALESCE(h.weekday, h.day_of_week) = d.weekday
+      );
+    `);
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_salon_opening_hours_salon_weekday_unique ON salon_opening_hours(salon_id, weekday);`);
+
+    await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS staff_id INT REFERENCES staff(id) ON DELETE SET NULL;`);
+    await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS duration_minutes INT DEFAULT 30;`);
+    await pool.query(`UPDATE appointments SET duration_minutes = 30 WHERE duration_minutes IS NULL;`);
+  })();
+
+  try {
+    await schedulingSchemaReadyPromise;
+  } catch (err) {
+    schedulingSchemaReadyPromise = null;
+    throw err;
+  }
+}
+
 // Public - list all salons for Explore page
 router.get('/', async (req, res) => {
   try {
@@ -75,6 +182,7 @@ router.get('/', async (req, res) => {
 // Gerant - get salon opening hours
 router.get('/:salonId/hours', requireSalonAccess, requireActiveSubscription, async (req, res) => {
   try {
+    await ensureSchedulingSchema();
     const { salonId } = req.params;
 
     const { rows } = await pool.query(
@@ -94,6 +202,7 @@ router.get('/:salonId/hours', requireSalonAccess, requireActiveSubscription, asy
 
 // Gerant - update salon opening hours
 router.put('/:salonId/hours', requireSalonAccess, requireActiveSubscription, async (req, res) => {
+  await ensureSchedulingSchema();
   const client = await pool.connect();
 
   try {
@@ -155,6 +264,7 @@ router.put('/:salonId/hours', requireSalonAccess, requireActiveSubscription, asy
 // Public - slots based on salon opening hours, plan, staff, and service duration
 router.get('/:salonId/slots', async (req, res) => {
   try {
+    await ensureSchedulingSchema();
     const { salonId } = req.params;
     const { date, serviceIds, staffId } = req.query;
     const requestedStaffId = staffId ? Number(staffId) : null;
@@ -213,8 +323,87 @@ router.get('/:salonId/slots', async (req, res) => {
       });
     }
 
-    // Basic availability when no service is selected
+    // Basic availability when no service is selected.
+    // TC-016 fix: if a specific staff member is selected, do NOT return global salon slots.
+    // Return slots for that staff member only, based on staff hours + staff appointments.
     if (requestedServiceIds.length === 0) {
+      if (requestedStaffId) {
+        const { rows: staffRows } = await pool.query(
+          `SELECT id AS staff_id, name AS staff_name
+           FROM staff
+           WHERE salon_id = $1
+             AND id = $2
+             AND active = true`,
+          [salonId, requestedStaffId]
+        );
+
+        if (!staffRows.length) {
+          return res.json(allowedSlots.map(time => ({
+            time,
+            available: false,
+            staffId: requestedStaffId,
+            staffName: null,
+            durationMinutes: 30
+          })));
+        }
+
+        const staff = staffRows[0];
+
+        const { rows: hoursRows } = await pool.query(
+          `SELECT staff_id, weekday, start_time, end_time, active
+           FROM staff_working_hours
+           WHERE staff_id = $1
+             AND weekday = $2`,
+          [requestedStaffId, weekday]
+        );
+
+        const { rows: apptRows } = await pool.query(
+          `SELECT staff_id, appt_time, duration_minutes
+           FROM appointments
+           WHERE salon_id = $1
+             AND appt_date = $2
+             AND status NOT IN ('cancelled','no_show')
+             AND staff_id = $3`,
+          [salonId, date, requestedStaffId]
+        );
+
+        const result = allowedSlots.map(time => {
+          const slotStart = toMinutes(time);
+          const duration = 30;
+          const hours = hoursRows[0];
+
+          let available = true;
+
+          if (hours && hours.active === false) available = false;
+
+          if (available && hours) {
+            const workStart = toMinutes(hours.start_time);
+            const workEnd = toMinutes(hours.end_time);
+            const slotEnd = slotStart + duration;
+            if (slotStart < workStart || slotEnd > workEnd) available = false;
+          }
+
+          if (available) {
+            available = !apptRows.some(appt => overlaps(
+              slotStart,
+              duration,
+              toMinutes(appt.appt_time),
+              Number(appt.duration_minutes || 30)
+            ));
+          }
+
+          return {
+            time,
+            available,
+            staffId: Number(staff.staff_id),
+            staffName: staff.staff_name,
+            durationMinutes: duration
+          };
+        });
+
+        return res.json(result);
+      }
+
       const { rows: bookedRows } = await pool.query(
         `SELECT appt_time
          FROM appointments

@@ -6961,3 +6961,119 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
 
 </body>
 </html>
+<!-- MKASS FINAL STAFF UX + PRICE MODAL FIX -->
+<style id="mkass-staff-ux-price-modal-fix-css">
+.staff-status-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:5px 10px;font:800 12px/1 Inter,Arial,sans-serif;margin-top:8px;border:1px solid var(--mk-border,#dedbd2);background:var(--mk-panel-2,#fbfaf7);color:var(--mk-soft-text,#656760)}
+.staff-status-pill.pending{background:rgba(251,176,64,.14);border-color:rgba(251,176,64,.28);color:#b76b00}.staff-status-pill.confirmed{background:rgba(27,166,64,.14);border-color:rgba(27,166,64,.28);color:#1ba640}.staff-status-pill.done{background:rgba(96,165,250,.13);border-color:rgba(96,165,250,.25);color:#3478c9}.staff-status-pill.no_show,.staff-status-pill.cancelled{background:rgba(255,107,107,.13);border-color:rgba(255,107,107,.28);color:#d94d4d}
+.staff-lite-row.is-updating{opacity:.58;pointer-events:none}.staff-lite-note{margin-top:8px;padding:8px 10px;border-radius:12px;background:rgba(27,166,64,.08);border:1px solid rgba(27,166,64,.16);font:650 13px/1.35 Inter,Arial,sans-serif;color:var(--mk-text,#101010)}.staff-lite-actions .ab.active{background:#1ba640!important;border-color:#1ba640!important;color:#07110b!important;font-weight:900!important}.staff-lite-actions .ab:disabled{opacity:.55;cursor:not-allowed}.mkass-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200000;display:flex;align-items:center;justify-content:center;padding:20px}.mkass-clean-modal{width:min(460px,96vw);background:var(--mk-panel,#fff);border:1px solid var(--mk-border,#dedbd2);border-radius:24px;box-shadow:0 24px 80px rgba(0,0,0,.25);padding:22px;color:var(--mk-text,#101010);font-family:Inter,Arial,sans-serif}.mkass-clean-modal h3{font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif;font-size:24px;letter-spacing:-.04em;margin:0 0 8px}.mkass-clean-modal p{margin:0 0 16px;color:var(--mk-soft-text,#656760);line-height:1.45}.mkass-clean-modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}.mkass-clean-modal-actions .btn{min-width:110px;justify-content:center}
+html.dark .staff-lite-note{background:rgba(27,166,64,.13);color:#f6f6f1}html.dark .mkass-clean-modal{background:var(--mk-panel,#171b18);border-color:var(--mk-border,rgba(255,255,255,.14));color:#f6f6f1}
+</style>
+<script id="mkass-staff-ux-price-modal-fix-js">
+(function(){
+  function statusLabel(status){
+    const map={pending:'En attente',confirmed:'Confirmé',done:'Terminé',no_show:'Absent',cancelled:'Annulé'};
+    return map[String(status||'pending')] || String(status||'pending');
+  }
+  function esc(v){
+    return String(v ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  }
+  function getAppointmentNote(a){
+    return a?.note || a?.client_note || a?.comment || a?.comments || '';
+  }
+  function staffActionButton(id, status, target, label, cls){
+    const active = String(status) === target;
+    return `<button class="ab ${cls||''} ${active?'active':''}" ${active?'disabled':''} onclick="staffSetStatus('${esc(id)}','${target}', this)">${label}</button>`;
+  }
+
+  // Staff limited dashboard: show notes, clear status, add Annulé, and show unassigned "Peu importe" RDV to every staff until accepted.
+  window.loadStaffLiteAppointments = async function loadStaffLiteAppointmentsUx(){
+    const box=document.getElementById('staff-lite-list'); if(!box) return;
+    try{
+      const rows=await apiCall('GET',`/salons/${authSalonId}/staff/me/appointments`,null,true);
+      box.innerHTML=(rows||[]).length ? rows.map(a=>{
+        const st=String(a.status || 'pending');
+        const note=getAppointmentNote(a);
+        const staffLabel = a.staff_id || a.staffId ? 'Assigné à vous' : 'Peu importe - à accepter';
+        return `<div class="staff-lite-row" data-appt-id="${esc(a.id)}">
+          <div>
+            <strong>${esc(a.client_name || a.client || 'Client')}</strong>
+            <div>${esc(String(a.appt_date || a.date || '').slice(0,10))} · ${esc(String(a.appt_time || a.time || '').slice(0,5))} · ${esc(Array.isArray(a.services) ? a.services.join(', ') : (a.services || ''))}</div>
+            <small>${esc(staffLabel)}</small><br>
+            <span class="staff-status-pill ${esc(st)}">${esc(statusLabel(st))}</span>
+            ${note ? `<div class="staff-lite-note"><strong>Note client:</strong> ${esc(note)}</div>` : ''}
+          </div>
+          <div class="staff-lite-actions">
+            ${staffActionButton(a.id, st, 'confirmed', 'Confirmer', 'ok')}
+            ${staffActionButton(a.id, st, 'done', 'Terminé', 'ok')}
+            ${staffActionButton(a.id, st, 'no_show', 'Absent', 'bad')}
+            ${staffActionButton(a.id, st, 'cancelled', 'Annulé', 'bad')}
+          </div>
+        </div>`;
+      }).join('') : 'Aucun rendez-vous assigné ou disponible.';
+    }catch(err){ box.textContent=err.message || 'Impossible de charger le planning'; }
+  };
+
+  window.staffSetStatus = async function staffSetStatusUx(id,status,btn){
+    const row=btn?.closest?.('.staff-lite-row');
+    try{
+      if(row) row.classList.add('is-updating');
+      if(btn){ btn.disabled=true; btn.textContent='...'; }
+      await apiCall('PATCH',`/salons/${authSalonId}/staff/me/appointments/${id}/status`,{status},true);
+      toast('Statut mis à jour: ' + statusLabel(status));
+      await loadStaffLiteAppointments();
+    }catch(err){
+      toast(err.message || 'Erreur statut');
+      if(row) row.classList.remove('is-updating');
+      await loadStaffLiteAppointments();
+    }
+  };
+
+  // Professional replacement for native browser prompt used by "Modifier prix".
+  window.mkassPriceModal = function mkassPriceModal(service){
+    return new Promise(resolve=>{
+      const old=document.getElementById('mkass-price-modal'); if(old) old.remove();
+      const wrap=document.createElement('div');
+      wrap.id='mkass-price-modal';
+      wrap.className='mkass-modal-backdrop';
+      wrap.innerHTML=`<div class="mkass-clean-modal" role="dialog" aria-modal="true">
+        <h3>Modifier le prix</h3>
+        <p>${esc(service?.name || 'Service')} · prix actuel: <strong>${esc(service?.price || 0)} TND</strong></p>
+        <label class="f-label">Nouveau prix (TND)</label>
+        <input class="f-input" id="mkass-price-input" type="number" min="0" step="0.01" value="${esc(service?.price || 0)}">
+        <div class="mkass-clean-modal-actions"><button class="btn btn-ghost" id="mkass-price-cancel">Annuler</button><button class="btn btn-lime" id="mkass-price-ok">Sauvegarder</button></div>
+      </div>`;
+      document.body.appendChild(wrap);
+      const input=wrap.querySelector('#mkass-price-input');
+      setTimeout(()=>{input?.focus(); input?.select();},50);
+      function close(v){wrap.remove(); resolve(v);}
+      wrap.querySelector('#mkass-price-cancel').onclick=()=>close(null);
+      wrap.querySelector('#mkass-price-ok').onclick=()=>{
+        const n=Number(input.value);
+        if(!Number.isFinite(n) || n < 0){ toast('Prix invalide'); return; }
+        close(n);
+      };
+      wrap.addEventListener('click',e=>{ if(e.target===wrap) close(null); });
+      input.addEventListener('keydown',e=>{ if(e.key==='Enter') wrap.querySelector('#mkass-price-ok').click(); if(e.key==='Escape') close(null); });
+    });
+  };
+
+  window.editSvcPrice = async function editSvcPriceClean(id){
+    const svcs=SALON_SERVICES[loggedSalonId] || [];
+    const svc=svcs.find(s=>String(s.id)===String(id));
+    if(!svc) return;
+    const p=await window.mkassPriceModal(svc);
+    if(p===null) return;
+    try{
+      if(typeof apiCall === 'function'){
+        await apiCall('PUT', `/salons/${loggedSalonId}/services/${id}`, { price:p }, true);
+      }
+      svc.price=p;
+      if(typeof renderDSvcs==='function') renderDSvcs();
+      if(typeof renderWiSvcs==='function') renderWiSvcs();
+      toast('Prix mis à jour: '+p+' TND');
+    }catch(err){
+      toast(err.message || 'Erreur modification prix');
+    }
+  };
+})();
+</script>

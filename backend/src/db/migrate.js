@@ -228,6 +228,16 @@ await client.query(`UPDATE salons SET subscription_status = 'active' WHERE subsc
     `);
 
 
+
+    // Review compatibility columns for verified customer reviews.
+    await client.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS author_phone TEXT DEFAULT '';`);
+    await client.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS appointment_id TEXT;`);
+    await client.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS client_name TEXT;`);
+    await client.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS rating INT;`);
+    await client.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS comment TEXT;`);
+    await client.query(`UPDATE reviews SET rating = COALESCE(rating, stars), comment = COALESCE(comment, text), client_name = COALESCE(client_name, author_name);`);
+    await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_appointment_unique ON reviews(appointment_id) WHERE appointment_id IS NOT NULL;`);
+
     // ── RULES / NO-SHOW / LOYALTY ────────────────────────────
     await client.query(`
       CREATE TABLE IF NOT EXISTS salon_rules (

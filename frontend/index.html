@@ -4024,7 +4024,7 @@ window.onload=()=>{document.body.classList.add("show-explore-footer");renderShop
   const API = "https://mkass-backend-production.up.railway.app/api";
 */
 const API = 'https://mkass-backend-test.up.railway.app/api';
-  let authToken = localStorage.getItem("mkass_auth_token") || null;
+let authToken = localStorage.getItem("mkass_auth_token") || null;
 let authRole = localStorage.getItem("mkass_auth_role") || null;
 let authSalonId = localStorage.getItem("mkass_salon_id") || null;
 let authSalonName = localStorage.getItem("mkass_salon_name") || null;
@@ -6817,6 +6817,145 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
       return result;
     };
   }
+})();
+</script>
+
+
+<style id="mkass-cahier-anomalies-fix-css">
+.note-line{margin-top:4px;color:var(--mk-soft-text,#656760);font-size:11px;line-height:1.35;white-space:normal;max-width:220px}
+.admin-status-row{display:flex;gap:5px;flex-wrap:wrap}
+</style>
+<script id="mkass-cahier-anomalies-fix-js">
+(function(){
+  function dateKey(v){ return String(v || '').slice(0,10); }
+  function money(v){ return Number(v || 0); }
+  function safeServices(a){ return Array.isArray(a?.services) ? a.services : (a?.services ? [a.services] : []); }
+
+  // MK-TC-004: dropdown choice must not auto-search. Search only on button click or Enter.
+  window.selectService = function selectServiceNoAutoSearch(query,label){
+    const inp=document.getElementById('search-inp');
+    if(inp) inp.value = label || query || 'Tous les soins';
+    if(typeof closeServiceMenu === 'function') closeServiceMenu();
+  };
+
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' && (e.target?.id === 'search-inp' || e.target?.id === 'location-inp')){
+      e.preventDefault();
+      if(typeof renderShops === 'function') renderShops();
+      if(typeof closeServiceMenu === 'function') closeServiceMenu();
+      if(typeof closeLocationMenu === 'function') closeLocationMenu();
+    }
+  });
+
+  document.addEventListener('click', function(e){
+    if(e.target?.classList?.contains('mk-search-btn')){
+      if(typeof renderShops === 'function') renderShops();
+    }
+  });
+
+  // MK-TC-020: show client note in gerant/personnel appointment rows.
+  window.aRow = function aRowWithNote(a,showDate){
+    const clientName = a.client || a.client_name || 'Client';
+    const init=String(clientName).split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() || '?';
+    const col=(window.AV_COLS || ['#1ba640'])[String(a.id || '').slice(-1).charCodeAt(0) % (window.AV_COLS || ['#1ba640']).length];
+    const dl = showDate ? `<td>${typeof formatDate === 'function' ? formatDate(a.date) : dateKey(a.date)}</td>` : '';
+    const svcStr=safeServices(a).join(', ') || '—';
+    const typePill=a.type==='walkin'?`<span class="badge badge-done" style="margin-left:4px;font-size:10px">Walk-in</span>`:'';
+    const note = String(a.note || a.customer_note || '').trim();
+    const staff = a.staffName || a.staff_name || '';
+    const statusMap = window.STATUS || {confirmed:'Confirmé',pending:'En attente',done:'Terminé',cancelled:'Annulé',no_show:'Absent'};
+    return`<tr>
+      <td><div class="av-cell"><div class="av" style="background:${col}">${init}</div><div><div class="cl-name">${clientName}${typePill}</div><div class="cl-ph">${a.phone||a.client_phone||''}${staff ? ' · '+staff : ''}</div>${note ? `<div class="note-line"><strong>Note:</strong> ${note}</div>` : ''}</div></div></td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${svcStr}</td>
+      ${dl}
+      <td>${a.time||'—'}</td>
+      <td><strong>${money(a.total)} TND</strong></td>
+      <td><span class="badge badge-${a.status}">${statusMap[a.status]||a.status}</span></td>
+      <td>
+        ${a.status==='pending'?`<button class="ab ok" onclick="chSt('${a.id}','confirmed')">✓</button>`:''}
+        ${a.status!=='done'&&a.status!=='cancelled'?`<button class="ab ok" onclick="chSt('${a.id}','done')">Terminé</button>`:''}
+        ${a.status!=='cancelled'&&a.status!=='done'?`<button class="ab bad" onclick="chSt('${a.id}','cancelled')">✗</button>`:''}
+        ${a.status!=='cancelled'&&a.status!=='done'&&a.status!=='no_show'?`<button class="ab bad" onclick="chSt('${a.id}','no_show')">Absent</button>`:''}
+      </td></tr>`;
+  };
+
+  // MK-TC-036: after cancel/status change, reload appointments and refresh slots.
+  window.chSt = async function chStRefreshSlots(id, st){
+    const a = (window.appointments || appointments || []).find(x=>String(x.id)===String(id));
+    if(!a) return;
+    try{
+      await apiCall('PATCH', `/salons/${a.salonId}/appointments/${id}/status`, { status: st }, true);
+      a.status = st;
+      if(typeof loadOwnerAppointments === 'function' && loggedSalonId && loggedSalonId !== '__admin__'){
+        await loadOwnerAppointments();
+      }
+      if(typeof renderDToday === 'function') renderDToday();
+      if(typeof renderDAll === 'function') renderDAll();
+      if(typeof renderBalance === 'function') renderBalance();
+      if(typeof renderWiHist === 'function') renderWiHist();
+      if(typeof renderSlots === 'function' && typeof selDate !== 'undefined' && selDate && (typeof selSalonId === 'undefined' || !selSalonId || String(selSalonId)===String(a.salonId))){
+        await renderSlots();
+      }
+      toast('Statut mis à jour');
+    }catch(err){
+      toast(err.message || 'Erreur statut');
+    }
+  };
+
+  // MK-TC-037: payments today should include walk-ins and bookings done today, regardless date format returned by API.
+  window.renderWiHist = function renderWiHistFixed(){
+    const body=document.getElementById('wi-hist-tb'); if(!body) return;
+    const today=todayStr();
+    const rows=(typeof myAppts === 'function' ? myAppts() : (appointments||[])).filter(a=>dateKey(a.date || a.appt_date)===today && a.status==='done');
+    const payIcon={cash:'💵',card:'💳',transfer:'📱',online:'🌐'};
+    body.innerHTML=rows.length?rows.map(a=>`
+      <tr>
+        <td>${a.client || a.client_name || 'Client'}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${safeServices(a).join(', ') || '—'}</td>
+        <td>${a.time || String(a.appt_time || '').slice(0,5) || '—'}</td>
+        <td><strong style="color:var(--success)">+${money(a.total)} TND</strong></td>
+        <td>${payIcon[a.payMode || a.pay_mode]||''} ${a.payMode || a.pay_mode || 'en ligne'}</td>
+        <td><span class="badge ${a.type==='walkin'?'badge-done':'badge-confirmed'}">${a.type==='walkin'?'Walk-in':'Réservation'}</span></td>
+      </tr>`).join(''):'<tr class="empty-row"><td colspan="6">Aucun paiement aujourd\'hui</td></tr>';
+  };
+
+  // Make walk-in save reload authoritative backend data before rendering payments.
+  const previousAddWalkin = window.addWalkin;
+  if(typeof previousAddWalkin === 'function'){
+    window.addWalkin = async function addWalkinReloadAfterSave(){
+      await previousAddWalkin.apply(this, arguments);
+      try{ if(typeof loadOwnerAppointments === 'function') await loadOwnerAppointments(); }catch(e){}
+      if(typeof renderWiHist === 'function') renderWiHist();
+      if(typeof renderDToday === 'function') renderDToday();
+      if(typeof renderBalance === 'function') renderBalance();
+    };
+  }
+
+  // MK-TC-043: admin can select any salon and edit its settings/services using admin token.
+  window.adminManageSalon = async function adminManageSalon(id){
+    const s=(SALONS||[]).find(x=>String(x.id)===String(id));
+    if(!s){ toast('Salon introuvable'); return; }
+    loggedSalonId = s.id;
+    try{ if(typeof loadServicesForSalon === 'function') await loadServicesForSalon(s.id); }catch(e){}
+    try{ if(typeof loadOwnerAppointments === 'function') await loadOwnerAppointments(); }catch(e){}
+    if(typeof showDash === 'function') showDash();
+    const btn=[...document.querySelectorAll('.sb-btn')].find(b=>String(b.textContent||'').includes('Param'));
+    if(typeof swTab === 'function') swTab(btn || document.querySelector('.sb-btn'), 'dt-settings');
+    if(typeof loadSettings === 'function') loadSettings();
+    toast('Admin: modification du salon '+s.name);
+  };
+
+  const previousAdminTable = window.renderAdminTable;
+  window.renderAdminTable = function renderAdminTableWithManage(){
+    if(!isAdmin) return;
+    const tb=document.getElementById('admin-salons-tb'); if(!tb) return;
+    tb.innerHTML=(SALONS||[]).map(s=>{
+      const cnt=(appointments||[]).filter(a=>String(a.salonId)===String(s.id)).length;
+      const plan=String(s.plan || 'starter').toLowerCase();
+      const sub=String(s.subscription_status || s.subscriptionStatus || 'active').toLowerCase();
+      return `<tr><td><div class="av-cell"><div style="font-size:20px">${s.icon || '✂️'}</div><div><div class="cl-name">${s.name}</div><div class="cl-ph">${s.username || s.id}</div></div></div></td><td><select class="admin-plan-select" onchange="adminSetPlan('${s.id}',this.value)"><option value="starter" ${plan==='starter'?'selected':''}>Starter</option><option value="pro" ${plan==='pro'?'selected':''}>Pro</option></select></td><td><span class="badge ${sub==='active'?'badge-confirmed':'badge-pending'}">${sub}</span></td><td>${cnt}</td><td><div class="admin-status-row"><button class="ab ok" onclick="adminManageSalon('${s.id}')">Gérer</button><button class="ab ok" onclick="adminSetSubscription('${s.id}','active')">Débloquer</button><button class="ab bad" onclick="adminSetSubscription('${s.id}','past_due')">Bloquer paiement</button><button class="ab bad" onclick="removeSalon('${s.id}')">Supprimer</button></div></td></tr>`;
+    }).join('');
+  };
 })();
 </script>
 

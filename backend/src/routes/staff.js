@@ -589,7 +589,8 @@ router.get('/:salonId/staff/me/appointments', requireStaffOrSalonAccess, require
     let sql = `SELECT a.*, st.name AS staff_name
                FROM appointments a
                LEFT JOIN staff st ON st.id = a.staff_id
-               WHERE a.salon_id = $1 AND a.staff_id = $2`;
+               WHERE a.salon_id = $1
+                 AND (a.staff_id = $2 OR a.staff_id IS NULL)`;
     if (date) { params.push(date); sql += ` AND a.appt_date = $${params.length}`; }
     if (status) { params.push(status); sql += ` AND a.status = $${params.length}`; }
     sql += ` ORDER BY a.appt_date ASC, a.appt_time ASC`;
@@ -605,21 +606,56 @@ router.get('/:salonId/staff/me/appointments', requireStaffOrSalonAccess, require
 // Personnel can confirm or mark own appointments done/no-show.
 router.patch('/:salonId/staff/me/appointments/:id/status', requireStaffOrSalonAccess, requireProPlan, async (req, res) => {
   try {
-    const allowed = new Set(['confirmed', 'done', 'no_show']);
+    const allowed = new Set(['confirmed', 'done', 'no_show', 'cancelled']);
     const status = String(req.body.status || '').trim();
     if (!allowed.has(status)) {
-      return res.status(400).json({ error: 'Status autorisé: confirmed, done, no_show' });
+      return res.status(400).json({ error: 'Status autorisé: confirmed, done, no_show, cancelled' });
     }
 
     const staffId = req.user.role === 'staff' ? req.user.staffId : Number(req.body.staffId || req.query.staffId);
     if (!staffId) return res.status(400).json({ error: 'staffId is required' });
 
+    const apptRes = await pool.query(
+      `SELECT * FROM appointments WHERE id = $1 AND salon_id = $2`,
+      [req.params.id, req.params.salonId]
+    );
+
+    if (!apptRes.rows.length) return res.status(404).json({ error: 'Rendez-vous introuvable' });
+    const appt = apptRes.rows[0];
+
+    if (appt.staff_id && Number(appt.staff_id) !== Number(staffId)) {
+      return res.status(403).json({ error: 'Ce rendez-vous est déjà pris par un autre membre du personnel' });
+    }
+
+    // If the client chose "Peu importe", the RDV is unassigned.
+    // The first staff member who confirms/done/no-show claims it, unless they already have a conflict.
+    const shouldClaim = !appt.staff_id && status !== 'cancelled';
+    if (shouldClaim) {
+      const conflict = await pool.query(
+        `SELECT id FROM appointments
+         WHERE salon_id = $1
+           AND staff_id = $2
+           AND appt_date = $3
+           AND appt_time = $4
+           AND id <> $5
+           AND status NOT IN ('cancelled','no_show')
+         LIMIT 1`,
+        [req.params.salonId, staffId, appt.appt_date, appt.appt_time, req.params.id]
+      );
+      if (conflict.rows.length) {
+        return res.status(409).json({ error: 'Vous avez déjà un rendez-vous sur ce créneau' });
+      }
+    }
+
     const { rows } = await pool.query(
       `UPDATE appointments
-       SET status = $1
-       WHERE id = $2 AND salon_id = $3 AND staff_id = $4
+       SET status = $1,
+           staff_id = CASE WHEN staff_id IS NULL AND $5 = true THEN $4 ELSE staff_id END
+       WHERE id = $2
+         AND salon_id = $3
+         AND (staff_id = $4 OR staff_id IS NULL)
        RETURNING *`,
-      [status, req.params.id, req.params.salonId, staffId]
+      [status, req.params.id, req.params.salonId, staffId, shouldClaim]
     );
 
     if (!rows.length) return res.status(404).json({ error: 'Rendez-vous introuvable pour ce personnel' });

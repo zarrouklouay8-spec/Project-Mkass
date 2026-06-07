@@ -362,18 +362,27 @@ router.post('/:salonId/appointments', async (req, res) => {
         });
       }
     } else {
-      const conflict = await pool.query(
-        `SELECT id
-         FROM appointments
-         WHERE salon_id = $1
-           AND appt_date = $2
-           AND appt_time = $3
-           AND status NOT IN ('cancelled','no_show')`,
-        [req.params.salonId, safeDate, safeTime]
-      );
+      // "Peu importe" = unassigned booking. If the salon has active staff, do not block
+      // the whole salon; all staff see it until one of them confirms and claims it.
+      const staffCount = await pool.query(
+        `SELECT COUNT(*)::int AS count FROM staff WHERE salon_id = $1 AND active = true`,
+        [req.params.salonId]
+      ).catch(() => ({ rows: [{ count: 0 }] }));
 
-      if (conflict.rows.length > 0) {
-        return res.status(409).json({ error: 'Ce créneau est déjà réservé' });
+      if (Number(staffCount.rows[0]?.count || 0) === 0) {
+        const conflict = await pool.query(
+          `SELECT id
+           FROM appointments
+           WHERE salon_id = $1
+             AND appt_date = $2
+             AND appt_time = $3
+             AND status NOT IN ('cancelled','no_show')`,
+          [req.params.salonId, safeDate, safeTime]
+        );
+
+        if (conflict.rows.length > 0) {
+          return res.status(409).json({ error: 'Ce créneau est déjà réservé' });
+        }
       }
     }
 

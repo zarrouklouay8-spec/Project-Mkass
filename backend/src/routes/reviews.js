@@ -1,26 +1,49 @@
 const router = require('express').Router();
 const pool = require('../db/pool');
 
+async function ensureReviewsSchema() {
+  await pool.query(`
+    ALTER TABLE reviews
+    ADD COLUMN IF NOT EXISTS author_phone TEXT DEFAULT '',
+    ADD COLUMN IF NOT EXISTS appointment_id TEXT,
+    ADD COLUMN IF NOT EXISTS client_name TEXT,
+    ADD COLUMN IF NOT EXISTS rating INT,
+    ADD COLUMN IF NOT EXISTS comment TEXT;
+  `);
+
+  await pool.query(`
+    UPDATE reviews
+    SET rating = COALESCE(rating, stars),
+        comment = COALESCE(comment, text),
+        client_name = COALESCE(client_name, author_name)
+    WHERE rating IS NULL OR comment IS NULL OR client_name IS NULL;
+  `);
+
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_appointment_unique
+    ON reviews(appointment_id)
+    WHERE appointment_id IS NOT NULL;
+  `);
+}
+
 // POST /api/reviews
 router.post('/', async (req, res) => {
   try {
+    await ensureReviewsSchema();
+
     const { appointmentId, rating, comment } = req.body;
 
     if (!appointmentId) {
       return res.status(400).json({ error: 'Rendez-vous obligatoire' });
     }
 
-    if (!rating || Number(rating) < 1 || Number(rating) > 5) {
+    const reviewRating = Number(rating);
+    if (!reviewRating || reviewRating < 1 || reviewRating > 5) {
       return res.status(400).json({ error: 'Note invalide' });
     }
 
     const apptResult = await pool.query(
-      `SELECT
-         id,
-         salon_id,
-         client_name,
-         client_phone,
-         status
+      `SELECT id, salon_id, client_name, client_phone, status
        FROM appointments
        WHERE id::text = $1::text`,
       [appointmentId]
@@ -40,8 +63,7 @@ router.post('/', async (req, res) => {
 
     const clientName = appt.client_name || 'Client';
     const clientPhone = appt.client_phone || '';
-    const reviewText = comment || '';
-    const reviewRating = Number(rating);
+    const reviewText = String(comment || '').trim();
 
     const { rows } = await pool.query(
       `INSERT INTO reviews (
@@ -55,7 +77,7 @@ router.post('/', async (req, res) => {
         rating,
         comment
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
       RETURNING *`,
       [
         appt.salon_id,
@@ -71,22 +93,21 @@ router.post('/', async (req, res) => {
     );
 
     res.status(201).json(rows[0]);
-
   } catch (err) {
     if (err.code === '23505') {
-      return res.status(400).json({
-        error: 'Un avis existe déjà pour ce rendez-vous'
-      });
+      return res.status(400).json({ error: 'Un avis existe déjà pour ce rendez-vous' });
     }
 
-    console.error(err);
-    res.status(500).json({ error: 'Erreur serveur' });
+    console.error('POST review error:', err);
+    res.status(500).json({ error: 'Erreur serveur avis', details: err.message, code: err.code });
   }
 });
 
 // GET /api/reviews/salon/:salonId
 router.get('/salon/:salonId', async (req, res) => {
   try {
+    await ensureReviewsSchema();
+
     const { rows } = await pool.query(
       `SELECT *
        FROM reviews
@@ -97,8 +118,8 @@ router.get('/salon/:salonId', async (req, res) => {
 
     res.json(rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erreur serveur' });
+    console.error('GET salon reviews error:', err);
+    res.status(500).json({ error: 'Erreur serveur avis', details: err.message, code: err.code });
   }
 });
 

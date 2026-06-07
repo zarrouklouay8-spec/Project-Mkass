@@ -61,6 +61,11 @@ await client.query(`UPDATE salons SET subscription_status = 'active' WHERE subsc
         created_at  TIMESTAMPTZ DEFAULT NOW()
       );
     `);
+
+    // Make services compatible with smart scheduling.
+    await client.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;`);
+    await client.query(`UPDATE services SET active = true WHERE active IS NULL;`);
+
     // ── STAFF / PERSONNEL ────────────────────────────────────
     await client.query(`
       CREATE TABLE IF NOT EXISTS staff (
@@ -78,9 +83,11 @@ await client.query(`UPDATE salons SET subscription_status = 'active' WHERE subsc
       );
     `);
 
+    await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;`);
+    await client.query(`UPDATE staff SET active = true WHERE active IS NULL;`);
     await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS role TEXT DEFAULT '';`);
     await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(5,4);`);
-    await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS username TEXT;`);
+    await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS username TEXT UNIQUE;`);
     await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS password_hash TEXT;`);
     await client.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS account_active BOOLEAN DEFAULT false;`);
 
@@ -94,6 +101,11 @@ await client.query(`UPDATE salons SET subscription_status = 'active' WHERE subsc
       );
     `);
 
+    await client.query(`ALTER TABLE staff_services ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;`);
+    await client.query(`ALTER TABLE staff_services ADD COLUMN IF NOT EXISTS duration_minutes INT DEFAULT 30;`);
+    await client.query(`UPDATE staff_services SET active = true WHERE active IS NULL;`);
+    await client.query(`UPDATE staff_services SET duration_minutes = 30 WHERE duration_minutes IS NULL;`);
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS staff_working_hours (
         id          SERIAL PRIMARY KEY,
@@ -104,6 +116,72 @@ await client.query(`UPDATE salons SET subscription_status = 'active' WHERE subsc
         active      BOOLEAN DEFAULT true,
         UNIQUE(staff_id, weekday)
       );
+    `);
+
+
+    // Compatibility columns for staff_working_hours.
+    await client.query(`ALTER TABLE staff_working_hours ADD COLUMN IF NOT EXISTS weekday INT;`);
+    await client.query(`ALTER TABLE staff_working_hours ADD COLUMN IF NOT EXISTS day_of_week INT;`);
+    await client.query(`ALTER TABLE staff_working_hours ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;`);
+    await client.query(`UPDATE staff_working_hours SET weekday = COALESCE(weekday, day_of_week, 0);`);
+    await client.query(`UPDATE staff_working_hours SET day_of_week = COALESCE(day_of_week, weekday, 0);`);
+    await client.query(`UPDATE staff_working_hours SET active = true WHERE active IS NULL;`);
+
+    // ── SALON OPENING HOURS ──────────────────────────────────
+    // The current frontend/routes use weekday. Some older patches used day_of_week.
+    // We keep both columns synchronized for safe test/prod migration.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS salon_opening_hours (
+        id SERIAL PRIMARY KEY,
+        salon_id TEXT NOT NULL REFERENCES salons(id) ON DELETE CASCADE,
+        weekday INT,
+        day_of_week INT,
+        active BOOLEAN DEFAULT true,
+        is_open BOOLEAN DEFAULT true,
+        start_time TEXT DEFAULT '09:00',
+        end_time TEXT DEFAULT '23:59',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`ALTER TABLE salon_opening_hours ADD COLUMN IF NOT EXISTS weekday INT;`);
+    await client.query(`ALTER TABLE salon_opening_hours ADD COLUMN IF NOT EXISTS day_of_week INT;`);
+    await client.query(`ALTER TABLE salon_opening_hours ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;`);
+    await client.query(`ALTER TABLE salon_opening_hours ADD COLUMN IF NOT EXISTS is_open BOOLEAN DEFAULT true;`);
+    await client.query(`ALTER TABLE salon_opening_hours ADD COLUMN IF NOT EXISTS start_time TEXT DEFAULT '09:00';`);
+    await client.query(`ALTER TABLE salon_opening_hours ADD COLUMN IF NOT EXISTS end_time TEXT DEFAULT '23:59';`);
+    await client.query(`ALTER TABLE salon_opening_hours ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();`);
+
+    await client.query(`UPDATE salon_opening_hours SET weekday = COALESCE(weekday, day_of_week, 0);`);
+    await client.query(`UPDATE salon_opening_hours SET day_of_week = COALESCE(day_of_week, weekday, 0);`);
+    await client.query(`UPDATE salon_opening_hours SET active = COALESCE(active, is_open, true);`);
+    await client.query(`UPDATE salon_opening_hours SET is_open = COALESCE(is_open, active, true);`);
+    await client.query(`UPDATE salon_opening_hours SET start_time = COALESCE(NULLIF(start_time, ''), '09:00');`);
+    await client.query(`UPDATE salon_opening_hours SET end_time = COALESCE(NULLIF(end_time, ''), '23:59');`);
+
+    await client.query(`
+      INSERT INTO salon_opening_hours (salon_id, weekday, day_of_week, active, is_open, start_time, end_time)
+      SELECT s.id, d.weekday, d.weekday, true, true, '09:00', '23:59'
+      FROM salons s
+      CROSS JOIN (
+        SELECT 0 AS weekday UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL
+        SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6
+      ) d
+      WHERE NOT EXISTS (
+        SELECT 1 FROM salon_opening_hours h
+        WHERE h.salon_id = s.id AND COALESCE(h.weekday, h.day_of_week) = d.weekday
+      );
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_salon_opening_hours_salon_weekday
+      ON salon_opening_hours (salon_id, weekday);
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_staff_working_hours_staff_weekday_unique
+      ON staff_working_hours (staff_id, weekday);
     `);
 
     // ── APPOINTMENTS ─────────────────────────────────────────
@@ -149,6 +227,16 @@ await client.query(`UPDATE salons SET subscription_status = 'active' WHERE subsc
       );
     `);
 
+
+
+    // Review compatibility columns for verified customer reviews.
+    await client.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS author_phone TEXT DEFAULT '';`);
+    await client.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS appointment_id TEXT;`);
+    await client.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS client_name TEXT;`);
+    await client.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS rating INT;`);
+    await client.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS comment TEXT;`);
+    await client.query(`UPDATE reviews SET rating = COALESCE(rating, stars), comment = COALESCE(comment, text), client_name = COALESCE(client_name, author_name);`);
+    await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_appointment_unique ON reviews(appointment_id) WHERE appointment_id IS NOT NULL;`);
 
     // ── RULES / NO-SHOW / LOYALTY ────────────────────────────
     await client.query(`
@@ -256,7 +344,6 @@ await client.query(`UPDATE salons SET subscription_status = 'active' WHERE subsc
     await client.query(`CREATE INDEX IF NOT EXISTS idx_salons_plan ON salons(plan);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_salons_subscription_status ON salons(subscription_status);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_staff_username ON staff(username);`);
-    await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_staff_username_unique ON staff (LOWER(username)) WHERE username IS NOT NULL AND username <> '';`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_expenses_salon_date ON expenses(salon_id, expense_date);`);
 
 

@@ -2,6 +2,7 @@ const router = require('express').Router();
 const pool = require('../db/pool');
 const bcrypt = require('bcryptjs');
 const { requireSalonAccess, requireStaffOrSalonAccess, requireStaffAccount, requireProPlan, getSalonPlan } = require('../middleware/auth');
+const { notifySalon } = require('../services/pushService');
 
 function normalizeRate(value) {
   const n = Number(value || 0);
@@ -659,6 +660,21 @@ router.patch('/:salonId/staff/me/appointments/:id/status', requireStaffOrSalonAc
     );
 
     if (!rows.length) return res.status(404).json({ error: 'Rendez-vous introuvable pour ce personnel' });
+
+    const eventType = shouldClaim
+      ? 'appointment_claimed'
+      : status === 'confirmed'
+        ? 'appointment_confirmed'
+        : status === 'cancelled'
+          ? 'appointment_cancelled'
+          : status === 'done'
+            ? 'appointment_done'
+            : status === 'no_show'
+              ? 'appointment_no_show'
+              : 'appointment_status_changed';
+
+    notifySalon(req.params.salonId, eventType, rows[0]).catch(err => console.warn('push notify failed:', err.message));
+
     res.json(rows[0]);
   } catch (err) {
     return sendServerError(res, 'PATCH staff me appointment status error:', err);
@@ -703,6 +719,8 @@ router.post('/:salonId/staff/me/walkin', requireStaffOrSalonAccess, requireProPl
         Number(req.body.durationMinutes || req.body.duration_minutes || 30)
       ]
     );
+
+    notifySalon(req.params.salonId, 'staff_walkin_created', rows[0]).catch(err => console.warn('push notify failed:', err.message));
 
     res.status(201).json(rows[0]);
   } catch (err) {

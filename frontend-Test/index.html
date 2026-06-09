@@ -4018,16 +4018,10 @@ window.onload=()=>{document.body.classList.add("show-explore-footer");renderShop
 
 <!-- MKASS RAILWAY API INTEGRATION - ADDED BY CHATGPT -->
 <script>
-/*
-  IMPORTANT: Replace this with your real Railway API URL.
-  Example:
-  const API = "https://mkass-backend-production.up.railway.app/api";
-  const API = 'https://mkass-backend-test.up.railway.app/api';
-console.log('Mkass API:', API);
-console.log('Mkass frontend folder: frontend-Test');
-
-*/
+// MKASS TEST API - do not point this file to production
 const API = 'https://mkass-backend-test.up.railway.app/api';
+console.log('MKASS TEST FRONTEND ACTIVE');
+console.log('MKASS API USED:', API);
   let authToken = localStorage.getItem("mkass_auth_token") || null;
 let authRole = localStorage.getItem("mkass_auth_role") || null;
 let authSalonId = localStorage.getItem("mkass_salon_id") || null;
@@ -6573,7 +6567,7 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
 
   function getApi(){
     try { if (typeof API !== 'undefined' && API) return API; } catch(e) {}
-    return 'https://mkass-backend-production.up.railway.app/api';
+    return 'https://mkass-backend-test.up.railway.app/api';
   }
 
   function status(text, isError){

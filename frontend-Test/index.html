@@ -7079,3 +7079,192 @@ html.dark .staff-lite-note{background:rgba(27,166,64,.13);color:#f6f6f1}html.dar
   };
 })();
 </script>
+
+
+<!-- MKASS BROWSER PUSH NOTIFICATIONS - TEST -->
+<style id="mkass-browser-push-css">
+.mkass-push-btn{position:relative;display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--border2);background:transparent;color:var(--gray);border-radius:var(--rs);padding:7px 13px;font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .16s ease;white-space:nowrap}
+.mkass-push-btn:hover{border-color:var(--lime);color:var(--lime);background:var(--lime-dim)}
+.mkass-push-btn.is-on{background:var(--lime);border-color:var(--lime);color:var(--ink)}
+.mkass-push-btn.is-waiting{opacity:.65;pointer-events:none}
+.mkass-push-dot{width:7px;height:7px;border-radius:50%;background:var(--gray2);box-shadow:0 0 0 0 rgba(200,255,0,.28)}
+.mkass-push-btn.is-on .mkass-push-dot{background:var(--ink);animation:mkassPushPulse 1.7s infinite}
+@keyframes mkassPushPulse{0%{box-shadow:0 0 0 0 rgba(200,255,0,.35)}70%{box-shadow:0 0 0 8px rgba(200,255,0,0)}100%{box-shadow:0 0 0 0 rgba(200,255,0,0)}}
+.mkass-notification-stack{position:fixed;right:18px;bottom:86px;z-index:200000;display:grid;gap:10px;width:min(380px,calc(100vw - 32px));pointer-events:none}
+.mkass-notification-card{background:var(--ink2);border:1px solid var(--border2);border-left:4px solid var(--lime);border-radius:var(--r);box-shadow:0 18px 60px rgba(0,0,0,.38);padding:13px 14px;color:var(--white);font-family:'Instrument Sans',sans-serif;transform:translateY(16px);opacity:0;animation:mkassNotifyIn .22s ease forwards}
+@keyframes mkassNotifyIn{to{transform:translateY(0);opacity:1}}
+.mkass-notification-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}.mkass-notification-title{display:flex;align-items:center;gap:8px;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;letter-spacing:-.03em;color:var(--white)}.mkass-notification-mark{width:26px;height:26px;border-radius:7px;background:var(--lime);display:flex;align-items:center;justify-content:center;flex:0 0 auto}.mkass-notification-mark svg{width:16px;height:16px}.mkass-notification-time{font-size:10px;font-weight:700;color:var(--gray);white-space:nowrap}.mkass-notification-body{padding-left:34px;font-size:12px;font-weight:600;line-height:1.45;color:var(--gray)}.mkass-notification-body strong{color:var(--white)}
+@media(max-width:640px){.mkass-notification-stack{left:12px;right:12px;bottom:82px;width:auto}.mkass-push-btn{padding:7px 11px;font-size:11px}}
+</style>
+<script id="mkass-browser-push-js">
+(function mkassBrowserPush(){
+  const SCISSORS_SVG = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="6" cy="6" r="3" stroke="#0A0A0A" stroke-width="2"/><circle cx="6" cy="18" r="3" stroke="#0A0A0A" stroke-width="2"/><path d="M8.5 8.5L20 20" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round"/><path d="M8.5 15.5L20 4" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round"/></svg>';
+
+  function pushToast(msg){
+    if (typeof toast === 'function') toast(msg);
+    else console.log(msg);
+  }
+
+  function ensureStack(){
+    let stack = document.getElementById('mkass-notification-stack');
+    if(!stack){
+      stack = document.createElement('div');
+      stack.id = 'mkass-notification-stack';
+      stack.className = 'mkass-notification-stack';
+      document.body.appendChild(stack);
+    }
+    return stack;
+  }
+
+  window.mkassShowInAppNotification = function mkassShowInAppNotification(title, body){
+    const stack = ensureStack();
+    const card = document.createElement('div');
+    card.className = 'mkass-notification-card';
+    card.innerHTML = `<div class="mkass-notification-head"><div class="mkass-notification-title"><span class="mkass-notification-mark">${SCISSORS_SVG}</span>${escapeHtml(title || 'Mkass')}</div><div class="mkass-notification-time">maintenant</div></div><div class="mkass-notification-body">${escapeHtml(body || 'Nouvelle notification')}</div>`;
+    stack.prepend(card);
+    while(stack.children.length > 3) stack.lastElementChild.remove();
+    setTimeout(()=>{ card.style.opacity='0'; card.style.transform='translateY(12px)'; setTimeout(()=>card.remove(),260); }, 6500);
+  };
+
+  function escapeHtml(v){
+    return String(v ?? '').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  }
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+    return outputArray;
+  }
+
+  function isPushOn(){
+    return localStorage.getItem('mkass_push_enabled') === 'true' && typeof Notification !== 'undefined' && Notification.permission === 'granted';
+  }
+
+  window.mkassEnableBrowserPush = async function mkassEnableBrowserPush(btn){
+    try {
+      btn = btn || document.getElementById('mkass-push-btn') || document.getElementById('mkass-staff-push-btn');
+      if(btn){ btn.classList.add('is-waiting'); btn.disabled = true; }
+
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        pushToast('Notifications navigateur non supportées sur cet appareil');
+        return;
+      }
+
+      if (typeof apiCall !== 'function' || typeof API === 'undefined') {
+        pushToast('API Mkass non disponible');
+        return;
+      }
+
+      if (typeof authToken === 'undefined' || !authToken) {
+        pushToast('Connectez-vous avant d’activer les notifications');
+        return;
+      }
+
+      const cfg = await apiCall('GET', '/push/public-key');
+      if (!cfg?.enabled || !cfg?.publicKey) {
+        pushToast('Notifications non configurées sur Railway');
+        return;
+      }
+
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        pushToast('Notifications refusées par le navigateur');
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(cfg.publicKey),
+        });
+      }
+
+      await apiCall('POST', '/push/subscribe', { subscription }, true);
+      localStorage.setItem('mkass_push_enabled', 'true');
+      pushToast('Notifications activées');
+      window.mkassShowInAppNotification('Notifications activées', 'Le gérant recevra les alertes réservation, walk-in et changements de statut.');
+      mkassInstallPushButton();
+    } catch (err) {
+      console.error('Mkass push error:', err);
+      pushToast(err.message || 'Erreur activation notifications');
+    } finally {
+      if(btn){ btn.classList.remove('is-waiting'); btn.disabled = false; }
+      mkassInstallPushButton();
+    }
+  };
+
+  function makeButton(id){
+    const btn = document.createElement('button');
+    btn.id = id;
+    btn.type = 'button';
+    btn.className = 'mkass-push-btn' + (isPushOn() ? ' is-on' : '');
+    btn.onclick = function(){ window.mkassEnableBrowserPush(btn); };
+    btn.innerHTML = `<span class="mkass-push-dot"></span>${isPushOn() ? 'Notifications activées' : 'Activer notifications'}`;
+    return btn;
+  }
+
+  window.mkassInstallPushButton = function mkassInstallPushButton(){
+    const dashboardHeaderActions = document.querySelector('#dt-today .dash-hdr > div:last-child');
+    if (dashboardHeaderActions) {
+      const old = document.getElementById('mkass-push-btn');
+      if(old) old.remove();
+      dashboardHeaderActions.prepend(makeButton('mkass-push-btn'));
+    }
+
+    const staffCard = document.querySelector('.staff-lite-wrap .staff-lite-card:first-child');
+    if(staffCard && !document.getElementById('mkass-staff-push-btn')){
+      const holder = document.createElement('div');
+      holder.style.marginTop = '10px';
+      holder.appendChild(makeButton('mkass-staff-push-btn'));
+      staffCard.appendChild(holder);
+    } else {
+      const staffBtn = document.getElementById('mkass-staff-push-btn');
+      if(staffBtn){
+        staffBtn.className = 'mkass-push-btn' + (isPushOn() ? ' is-on' : '');
+        staffBtn.innerHTML = `<span class="mkass-push-dot"></span>${isPushOn() ? 'Notifications activées' : 'Activer notifications'}`;
+      }
+    }
+  };
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if(event.data?.type === 'MKASS_PUSH_NOTIFICATION') {
+        window.mkassShowInAppNotification(event.data.title, event.data.body);
+      }
+    });
+  }
+
+  const oldShowDash = window.showDash;
+  if (typeof oldShowDash === 'function' && !oldShowDash.__mkassPushWrapped) {
+    const wrapped = function(){
+      const result = oldShowDash.apply(this, arguments);
+      setTimeout(window.mkassInstallPushButton, 120);
+      return result;
+    };
+    wrapped.__mkassPushWrapped = true;
+    window.showDash = wrapped;
+  }
+
+  const oldStaffLite = window.showStaffLiteDashboard;
+  if(typeof oldStaffLite === 'function' && !oldStaffLite.__mkassPushWrapped){
+    const wrappedStaff = async function(){
+      const result = await oldStaffLite.apply(this, arguments);
+      setTimeout(window.mkassInstallPushButton, 120);
+      return result;
+    };
+    wrappedStaff.__mkassPushWrapped = true;
+    window.showStaffLiteDashboard = wrappedStaff;
+  }
+
+  window.addEventListener('load', () => {
+    setTimeout(window.mkassInstallPushButton, 700);
+  });
+})();
+</script>

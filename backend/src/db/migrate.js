@@ -383,6 +383,44 @@ await client.query(`UPDATE salons SET subscription_status = 'active' WHERE subsc
       ON staff_working_hours (staff_id, weekday);
     `);
 
+
+
+    // ── BROWSER PUSH NOTIFICATIONS ──────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id SERIAL PRIMARY KEY,
+        salon_id TEXT NOT NULL,
+        user_role TEXT,
+        staff_id TEXT,
+        endpoint TEXT NOT NULL UNIQUE,
+        subscription JSONB NOT NULL,
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS push_notification_logs (
+        id SERIAL PRIMARY KEY,
+        salon_id TEXT NOT NULL,
+        appointment_id TEXT,
+        event_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        body TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        error TEXT,
+        sent_count INTEGER NOT NULL DEFAULT 0,
+        failed_count INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_salon ON push_subscriptions(salon_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_active ON push_subscriptions(active);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_push_notification_logs_salon ON push_notification_logs(salon_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_push_notification_logs_appt ON push_notification_logs(appointment_id);`);
+
     await client.query('COMMIT');
     console.log('✅ Migration complete — all tables created.');
   } catch (err) {

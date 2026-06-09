@@ -6971,8 +6971,8 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
 .mkass-notification-card{background:var(--ink2);border:1px solid var(--border2);border-left:4px solid var(--lime);border-radius:var(--r);box-shadow:0 18px 60px rgba(0,0,0,.38);padding:13px 14px;color:var(--white);font-family:'Instrument Sans',sans-serif;transform:translateY(16px);opacity:0;animation:mkassNotifyIn .22s ease forwards}
 @keyframes mkassNotifyIn{to{transform:translateY(0);opacity:1}}
 .mkass-notification-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}.mkass-notification-title{display:flex;align-items:center;gap:8px;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;letter-spacing:-.03em;color:var(--white)}.mkass-notification-mark{width:26px;height:26px;border-radius:7px;background:var(--lime);display:flex;align-items:center;justify-content:center;flex:0 0 auto}.mkass-notification-mark svg{width:16px;height:16px}.mkass-notification-time{font-size:10px;font-weight:700;color:var(--gray);white-space:nowrap}.mkass-notification-body{padding-left:34px;font-size:12px;font-weight:600;line-height:1.45;color:var(--gray)}.mkass-notification-body strong{color:var(--white)}
-.mkass-push-floating{position:fixed;right:16px;bottom:96px;z-index:99990;background:var(--ink2);box-shadow:0 14px 45px rgba(0,0,0,.25)}
-@media(max-width:640px){.mkass-notification-stack{left:12px;right:12px;bottom:82px;width:auto}.mkass-push-btn{padding:7px 11px;font-size:11px}.mkass-push-floating{right:12px;bottom:86px}}
+.mkass-push-floating{position:fixed;right:16px;bottom:96px;z-index:99990;background:var(--ink2);box-shadow:0 14px 45px rgba(0,0,0,.25);display:none}
+@media(max-width:640px){.mkass-notification-stack{left:12px;right:12px;bottom:82px;width:auto}.mkass-push-btn{padding:8px 12px;font-size:11px}.mkass-push-floating{right:12px;bottom:88px;display:inline-flex}}
 </style>
 <script id="mkass-browser-push-js">
 (function mkassBrowserPush(){
@@ -7063,7 +7063,9 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
       const holder = document.createElement('div'); holder.style.marginTop = '10px'; holder.appendChild(makeButton('mkass-staff-push-btn')); staffCard.appendChild(holder);
     }
 
-    if(!document.getElementById('mkass-push-btn') && !document.getElementById('mkass-staff-push-btn') && !document.getElementById('mkass-push-floating-btn')){
+    // Always create the floating mobile button. It is hidden on desktop by CSS and shown on mobile.
+    // This avoids the button being inserted inside a desktop-only header that is not visible on phones.
+    if(!document.getElementById('mkass-push-floating-btn')){
       document.body.appendChild(makeButton('mkass-push-floating-btn', true));
     }
 

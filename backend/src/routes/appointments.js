@@ -2,6 +2,7 @@
 const router = require('express').Router();
 const pool = require('../db/pool');
 const { requireSalonAccess, requireActiveSubscription } = require('../middleware/auth');
+const { notifySalon } = require('../services/pushService');
 
 
 function cleanPhone(phone) {
@@ -427,6 +428,9 @@ router.post('/:salonId/appointments', async (req, res) => {
       finalDurationMinutes
     ]);
 
+    // Browser push notification: notify connected gerant/staff in background.
+    notifySalon(req.params.salonId, 'new_appointment', rows[0]).catch(err => console.warn('push notify failed:', err.message));
+
     res.status(201).json(rows[0]);
   } catch (err) {
     console.error(err);
@@ -500,6 +504,9 @@ router.post('/:salonId/appointments/walkin', requireSalonAccess, requireActiveSu
       finalPayMode
     ]);
 
+    // Browser push notification: notify gerant/staff about walk-in payments too.
+    notifySalon(req.params.salonId, 'walkin_created', rows[0]).catch(err => console.warn('push notify failed:', err.message));
+
     res.status(201).json(rows[0]);
   } catch (err) {
     console.error(err);
@@ -513,11 +520,20 @@ router.patch('/:salonId/appointments/:id/status', requireSalonAccess, requireAct
     const { status } = req.body;
 
     const { rows } = await pool.query(
-      `UPDATE appointments
-       SET status = $1
-       WHERE id = $2
-         AND salon_id = $3
-       RETURNING *`,
+      `WITH old_row AS (
+         SELECT status AS previous_status
+         FROM appointments
+         WHERE id = $2 AND salon_id = $3
+       ), updated AS (
+         UPDATE appointments
+         SET status = $1
+         WHERE id = $2
+           AND salon_id = $3
+         RETURNING *
+       )
+       SELECT updated.*, old_row.previous_status
+       FROM updated
+       LEFT JOIN old_row ON true`,
       [status, req.params.id, req.params.salonId]
     );
 
@@ -533,6 +549,22 @@ router.patch('/:salonId/appointments/:id/status', requireSalonAccess, requireAct
       await applyLoyaltyRules(req.params.salonId, rows[0]);
     }
 
+    const previousStatus = rows[0].previous_status;
+    if (previousStatus !== status) {
+      const eventType = status === 'confirmed'
+        ? 'appointment_confirmed'
+        : status === 'cancelled'
+          ? 'appointment_cancelled'
+          : status === 'done'
+            ? 'appointment_done'
+            : status === 'no_show'
+              ? 'appointment_no_show'
+              : 'appointment_status_changed';
+
+      notifySalon(req.params.salonId, eventType, rows[0]).catch(err => console.warn('push notify failed:', err.message));
+    }
+
+    delete rows[0].previous_status;
     res.json(rows[0]);
   } catch (err) {
     console.error(err);

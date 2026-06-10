@@ -952,6 +952,11 @@ html.dark .mk-location-menu,html.dark .mk-service-menu{background:var(--mk-card)
 }
 .mk-service-title{font-weight:750!important;letter-spacing:-.02em!important;}
 html.dark .mk-service-name{color:#fff!important;}
+
+
+/* MKASS LEGAL PAGES / PAYMENT APPROVAL FOOTER */
+.legal-link{cursor:pointer}.legal-link:hover{color:var(--mk-green)!important}.mk-legal-overlay{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.56);backdrop-filter:blur(10px);display:none;align-items:flex-end;justify-content:center;padding:18px}.mk-legal-overlay.show{display:flex}.mk-legal-sheet{width:min(980px,100%);max-height:min(86vh,920px);overflow:auto;background:var(--mk-card,#fff);color:var(--mk-text,#111);border:1px solid var(--mk-line,#e2e0da);border-radius:28px;box-shadow:0 28px 90px rgba(0,0,0,.34);font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif}.mk-legal-head{position:sticky;top:0;z-index:2;background:var(--mk-card,#fff);border-bottom:1px solid var(--mk-line,#e2e0da);padding:22px 24px;display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.mk-legal-head small{display:block;text-transform:uppercase;letter-spacing:.12em;color:var(--mk-green,#1ba640);font-weight:900;font-size:11px;margin-bottom:7px}.mk-legal-head h2{margin:0;font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif;font-size:28px;line-height:1.05;letter-spacing:-.04em;color:var(--mk-text,#111)}.mk-legal-close{width:42px;height:42px;border:0;border-radius:999px;background:rgba(27,166,64,.12);color:var(--mk-green,#1ba640);font-size:26px;font-weight:900;cursor:pointer;line-height:1}.mk-legal-body{padding:28px 24px 32px}.mk-legal-section{display:none}.mk-legal-section.active{display:block}.mk-legal-section h3{font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif;font-size:19px;margin:24px 0 10px;color:var(--mk-text,#111);letter-spacing:-.02em}.mk-legal-section p,.mk-legal-section li{font-size:14px;line-height:1.75;color:var(--mk-muted,#55574f)}.mk-legal-section ul{padding-left:20px;margin:8px 0 14px}.mk-legal-note{background:rgba(27,166,64,.09);border:1px solid rgba(27,166,64,.18);border-radius:18px;padding:14px 16px;margin:14px 0;color:var(--mk-text,#111)!important}.mk-legal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:12px 0 18px}.mk-legal-box{border:1px solid var(--mk-line,#e2e0da);border-radius:18px;padding:14px 16px;background:rgba(247,246,241,.55)}.mk-legal-box b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mk-green,#1ba640);margin-bottom:4px}.mk-legal-placeholder{color:#b7791f;font-weight:800}html.dark .mk-legal-sheet,html.dark .mk-legal-head{background:var(--mk-card,#151815);color:#fff;border-color:var(--mk-line,#2a2a2a)}html.dark .mk-legal-head h2,html.dark .mk-legal-section h3,html.dark .mk-legal-note{color:#fff!important}html.dark .mk-legal-section p,html.dark .mk-legal-section li{color:var(--mk-muted,#b8b8b0)}html.dark .mk-legal-box{background:rgba(255,255,255,.035);border-color:var(--mk-line,#2a2a2a)}@media(max-width:700px){.mk-legal-overlay{padding:0;align-items:flex-end}.mk-legal-sheet{border-radius:28px 28px 0 0;max-height:88vh}.mk-legal-head{padding:20px 18px}.mk-legal-head h2{font-size:24px}.mk-legal-body{padding:22px 18px 110px}.mk-legal-grid{grid-template-columns:1fr}.mk-footer-grid .legal-link{padding:2px 0}}
+
 </style>
 
 <style id="mkass-final-mobile-bottom-nav-no-icons">
@@ -2634,12 +2639,85 @@ html.dark .staff-card,html.dark .rules-card,html.dark .pro-panel{box-shadow:none
     <div class="mk-footer-grid">
       <div><h4>À propos de Mkass</h4><a>Carrières</a><a>Aide et assistance</a><a>Blog</a><a>Plan du site</a></div>
       <div><h4>Pour les professionnels</h4><a>Pour les partenaires</a><a>Tarifs</a><a>Aide</a><a>Statut</a></div>
-      <div><h4>Mentions légales</h4><a>Politique de confidentialité</a><a>Conditions d'utilisation</a><a>Cookies</a></div>
+      <div><h4>Mentions légales</h4><a class="legal-link" onclick="openLegalPage('mentions')">Mentions légales</a><a class="legal-link" onclick="openLegalPage('cgv')">Conditions générales de vente</a><a class="legal-link" onclick="openLegalPage('refund')">Politique de remboursement</a><a class="legal-link" onclick="openLegalPage('privacy')">Politique de confidentialité</a><a class="legal-link" onclick="openLegalPage('cookies')">Cookies</a></div>
       <div><h4>Retrouvez-nous sur les réseaux sociaux</h4><a>↗ Facebook</a><a>↗ X (Twitter)</a><a>↗ Linkedin</a><a>↗ Instagram</a></div>
     </div>
   </div>
   <div class="mk-footer-bottom"><span>◎ français (FR)</span><span>© 2026 Mkass. Tous droits réservés.</span></div>
 </footer>
+
+<div class="mk-legal-overlay" id="mk-legal-overlay" onclick="closeLegalPage(event)">
+  <div class="mk-legal-sheet" role="dialog" aria-modal="true" aria-labelledby="mk-legal-title">
+    <div class="mk-legal-head">
+      <div><small>Documents légaux Mkass</small><h2 id="mk-legal-title">Mentions légales</h2></div>
+      <button class="mk-legal-close" type="button" onclick="closeLegalPage()" aria-label="Fermer">×</button>
+    </div>
+    <div class="mk-legal-body">
+      <section class="mk-legal-section active" data-legal="mentions" data-title="Mentions légales">
+        <p class="mk-legal-note"><b>À compléter avant validation bancaire :</b> remplacez les champs entre crochets par vos informations officielles auto-entrepreneur.</p>
+        <div class="mk-legal-grid">
+          <div class="mk-legal-box"><b>Propriétaire du site</b><span class="mk-legal-placeholder">[Nom et prénom légal]</span></div>
+          <div class="mk-legal-box"><b>Statut</b>Auto-entrepreneur — المبادر الذاتي</div>
+          <div class="mk-legal-box"><b>Numéro d’enregistrement</b><span class="mk-legal-placeholder">[Numéro carte auto-entrepreneur / patente]</span></div>
+          <div class="mk-legal-box"><b>Contact</b><span class="mk-legal-placeholder">[email professionnel] · [téléphone tunisien]</span></div>
+          <div class="mk-legal-box"><b>Adresse</b><span class="mk-legal-placeholder">[Adresse professionnelle enregistrée en Tunisie]</span></div>
+          <div class="mk-legal-box"><b>Site web</b>Mkass — plateforme de réservation pour salons, coiffeurs et barbiers.</div>
+        </div>
+        <h3>Objet du site</h3><p>Mkass permet aux clients de consulter des salons partenaires, choisir un service, réserver un créneau et suivre leurs réservations. Les gérants utilisent Mkass pour gérer leurs rendez-vous, personnel, services, caisse et notifications.</p>
+        <h3>Responsabilité</h3><p>Mkass met à disposition un outil de réservation. Chaque établissement partenaire reste responsable de la qualité de ses prestations, de ses horaires, de ses prix et de la relation avec ses clients.</p>
+      </section>
+      <section class="mk-legal-section" data-legal="cgv" data-title="Conditions générales de vente">
+        <h3>Prix et devise</h3><p>Tous les prix affichés sur Mkass sont indiqués en dinars tunisiens (TND), toutes taxes applicables comprises sauf indication contraire.</p>
+        <h3>Paiement sécurisé</h3><p>Les paiements en ligne, lorsqu’ils sont activés, sont traités de manière sécurisée par un prestataire de paiement autorisé. Les moyens de paiement peuvent inclure carte bancaire Visa, Mastercard et e-Dinar, selon les options disponibles.</p>
+        <h3>Réservation et exécution du service</h3><p>La réservation est enregistrée immédiatement après confirmation. Le service est fourni à la date et à l’heure choisies par le client dans l’établissement sélectionné. Le client doit se présenter à l’heure du rendez-vous.</p>
+        <h3>Annulation</h3><p>Le client peut annuler une réservation selon les règles affichées par l’établissement. Le gérant peut également annuler ou modifier une réservation en cas d’indisponibilité, de fermeture exceptionnelle ou d’erreur de planning.</p>
+      </section>
+      <section class="mk-legal-section" data-legal="refund" data-title="Politique de remboursement">
+        <h3>Droit de rétractation</h3><p>Pour les biens physiques, le consommateur peut généralement disposer d’un droit de changement d’avis dans les délais prévus par la réglementation applicable. Pour les services de réservation et prestations réalisées à une date précise, ce droit peut être limité lorsque la prestation a commencé ou a été exécutée.</p>
+        <h3>Remboursement</h3><p>Lorsqu’un remboursement est applicable, il peut être effectué par virement bancaire, remboursement via le prestataire de paiement, ou autre méthode convenue avec le client.</p>
+        <h3>Exceptions</h3><p>En raison de la nature digitale/personnalisée de certains services, les remboursements ne sont pas disponibles une fois que le travail a commencé, que la prestation a été réalisée ou que les fichiers/services personnalisés ont été livrés.</p>
+        <p class="mk-legal-note">Pour les réservations salon, la politique exacte peut dépendre du salon partenaire, du délai d’annulation et de l’état du rendez-vous.</p>
+      </section>
+      <section class="mk-legal-section" data-legal="privacy" data-title="Politique de confidentialité">
+        <h3>Données collectées</h3><p>Mkass peut collecter le nom, le prénom, le numéro de téléphone, l’adresse email, les informations de réservation, les avis clients et les informations nécessaires à la gestion des salons.</p>
+        <h3>Finalité</h3><p>Ces données sont utilisées strictement pour fournir le service : prise de rendez-vous, gestion des réservations, notifications, assistance client, historique des rendez-vous et amélioration de l’expérience Mkass.</p>
+        <h3>Données de paiement</h3><p class="mk-legal-note">We do not store or collect your payment card details. All financial transactions are processed securely by our authorized payment provider.</p>
+        <h3>Partage des données</h3><p>Les données de réservation peuvent être partagées avec le salon concerné afin de fournir la prestation. Mkass ne vend pas les données personnelles des utilisateurs.</p>
+        <h3>Sécurité</h3><p>Mkass met en place des mesures raisonnables pour protéger les données contre l’accès non autorisé, la perte ou l’altération.</p>
+      </section>
+      <section class="mk-legal-section" data-legal="cookies" data-title="Politique cookies">
+        <h3>Utilisation des cookies</h3><p>Mkass peut utiliser des cookies ou technologies similaires pour maintenir la session utilisateur, mémoriser certaines préférences d’affichage, améliorer la navigation et sécuriser l’accès aux comptes.</p>
+        <h3>Gestion</h3><p>L’utilisateur peut supprimer ou bloquer les cookies depuis les paramètres de son navigateur. Certaines fonctionnalités de connexion ou réservation peuvent être limitées si les cookies sont désactivés.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+
+
+<script id="mkass-legal-pages-js">
+(function(){
+  window.openLegalPage = function(page){
+    const overlay = document.getElementById('mk-legal-overlay');
+    if(!overlay) return;
+    const sections = overlay.querySelectorAll('.mk-legal-section');
+    const active = overlay.querySelector(`.mk-legal-section[data-legal="${page}"]`) || overlay.querySelector('.mk-legal-section[data-legal="mentions"]');
+    sections.forEach(s => s.classList.toggle('active', s === active));
+    const title = active.getAttribute('data-title') || 'Documents légaux';
+    const h = document.getElementById('mk-legal-title');
+    if(h) h.textContent = title;
+    overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  };
+  window.closeLegalPage = function(event){
+    if(event && event.target && event.target.id !== 'mk-legal-overlay') return;
+    const overlay = document.getElementById('mk-legal-overlay');
+    if(overlay) overlay.classList.remove('show');
+    document.body.style.overflow = '';
+  };
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') window.closeLegalPage(); });
+})();
+</script>
 
 <!-- MOBILE / DESKTOP NAV TABS (bottom on phone) -->
   <div class="nav-tabs" aria-label="Navigation principale">
@@ -4015,7 +4093,7 @@ window.onload=()=>{document.body.classList.add("show-explore-footer");renderShop
 </script>
 
 
-<!-- MKASS RAILWAY API INTEGRATION - T -->
+<!-- MKASS RAILWAY API INTEGRATION - ADDED BY CHATGPT -->
 <script>
 // MKASS TEST API - do not point this file to production
 const API = 'https://mkass-backend-test.up.railway.app/api';

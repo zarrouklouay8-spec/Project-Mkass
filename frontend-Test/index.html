@@ -2637,10 +2637,10 @@ html.dark .staff-card,html.dark .rules-card,html.dark .pro-panel{box-shadow:none
       <a class="mk-download" href="#" aria-label="Télécharger l'application Mkass"><span class="mk-download-text">Télécharger l'app</span><span class="mk-store"><svg class="mk-apple" viewBox="0 0 24 29" aria-hidden="true"><path d="M19.33 15.42c-.03-3.12 2.55-4.62 2.67-4.69-1.46-2.13-3.72-2.43-4.52-2.46-1.92-.2-3.74 1.13-4.71 1.13-.97 0-2.47-1.1-4.06-1.07-2.09.03-4.02 1.22-5.1 3.1-2.18 3.78-.56 9.37 1.57 12.43 1.04 1.5 2.28 3.19 3.91 3.13 1.57-.06 2.16-1.01 4.05-1.01s2.42 1.01 4.08.98c1.68-.03 2.75-1.53 3.78-3.04 1.19-1.74 1.68-3.43 1.71-3.52-.04-.02-3.35-1.28-3.38-4.98z"/><path d="M16.22 6.25c.86-1.04 1.44-2.48 1.28-3.92-1.24.05-2.73.83-3.62 1.86-.79.91-1.49 2.38-1.3 3.78 1.38.11 2.78-.7 3.64-1.72z"/></svg><span class="mk-g-logo">G</span></span></a>
     </div>
     <div class="mk-footer-grid">
-      <div><h4>À propos de Mkass</h4><a>Carrières</a><a>Aide et assistance</a><a>Blog</a><a>Plan du site</a></div>
-      <div><h4>Pour les professionnels</h4><a>Pour les partenaires</a><a>Tarifs</a><a>Aide</a><a>Statut</a></div>
+      <div><h4>À propos de Mkass</h4><a class="legal-link" onclick="openLegalPage('support')">Aide et assistance</a><a class="legal-link" onclick="openLegalPage('blog')">Blog</a><a class="legal-link" onclick="openLegalPage('sitemap')">Plan du site</a></div>
+      <div><h4>Pour les professionnels</h4><a class="legal-link" onclick="openLegalPage('partners')">Pour les partenaires</a><a class="legal-link" onclick="openLegalPage('pricing')">Tarifs</a><a class="legal-link" onclick="openLegalPage('pro-help')">Aide</a><a class="legal-link" onclick="openLegalPage('status')">Statut</a></div>
       <div><h4>Mentions légales</h4><a class="legal-link" onclick="openLegalPage('mentions')">Mentions légales</a><a class="legal-link" onclick="openLegalPage('cgv')">Conditions générales de vente</a><a class="legal-link" onclick="openLegalPage('refund')">Politique de remboursement</a><a class="legal-link" onclick="openLegalPage('privacy')">Politique de confidentialité</a><a class="legal-link" onclick="openLegalPage('cookies')">Cookies</a></div>
-      <div><h4>Retrouvez-nous sur les réseaux sociaux</h4><a>↗ Facebook</a><a>↗ X (Twitter)</a><a>↗ Linkedin</a><a>↗ Instagram</a></div>
+      <div><h4>Retrouvez-nous sur les réseaux sociaux</h4><a href="https://www.facebook.com/profile.php?id=61590437757914" target="_blank" rel="noopener noreferrer">↗ Facebook</a><a href="https://www.instagram.com/mkassapp/" target="_blank" rel="noopener noreferrer">↗ Instagram</a></div>
     </div>
   </div>
   <div class="mk-footer-bottom"><span>◎ français (FR)</span><span>© 2026 Mkass. Tous droits réservés.</span></div>
@@ -2649,7 +2649,7 @@ html.dark .staff-card,html.dark .rules-card,html.dark .pro-panel{box-shadow:none
 <div class="mk-legal-overlay" id="mk-legal-overlay" onclick="closeLegalPage(event)">
   <div class="mk-legal-sheet" role="dialog" aria-modal="true" aria-labelledby="mk-legal-title">
     <div class="mk-legal-head">
-      <div><small>Documents légaux Mkass</small><h2 id="mk-legal-title">Mentions légales</h2></div>
+      <div><small>Centre d’information Mkass</small><h2 id="mk-legal-title">Mentions légales</h2></div>
       <button class="mk-legal-close" type="button" onclick="closeLegalPage()" aria-label="Fermer">×</button>
     </div>
     <div class="mk-legal-body">
@@ -2689,6 +2689,67 @@ html.dark .staff-card,html.dark .rules-card,html.dark .pro-panel{box-shadow:none
         <h3>Utilisation des cookies</h3><p>Mkass peut utiliser des cookies ou technologies similaires pour maintenir la session utilisateur, mémoriser certaines préférences d’affichage, améliorer la navigation et sécuriser l’accès aux comptes.</p>
         <h3>Gestion</h3><p>L’utilisateur peut supprimer ou bloquer les cookies depuis les paramètres de son navigateur. Certaines fonctionnalités de connexion ou réservation peuvent être limitées si les cookies sont désactivés.</p>
       </section>
+      <section class="mk-legal-section" data-legal="support" data-title="Aide et assistance">
+        <h3>Centre d’aide Mkass</h3><p>Mkass accompagne les clients et les salons dans l’utilisation de la plateforme : recherche de salon, réservation, suivi des rendez-vous, gestion des notifications et assistance compte.</p>
+        <div class="mk-legal-grid">
+          <div class="mk-legal-box"><b>Clients</b>Consultez les salons, choisissez un service, réservez un créneau disponible et suivez vos réservations depuis “Mes réservations”.</div>
+          <div class="mk-legal-box"><b>Gérants</b>Gérez vos rendez-vous, services, personnel, caisse, règles de réservation, avis et notifications depuis votre espace salon.</div>
+          <div class="mk-legal-box"><b>Temps de réponse</b>Les demandes d’assistance sont traitées dans les meilleurs délais ouvrables.</div>
+          <div class="mk-legal-box"><b>Contact</b><span class="mk-legal-placeholder">[email support Mkass] · [téléphone support]</span></div>
+        </div>
+        <h3>Avant de contacter le support</h3><ul><li>Vérifiez que votre numéro de téléphone est correct.</li><li>Actualisez la page si une réservation ou notification ne s’affiche pas.</li><li>Pour les notifications, vérifiez que l’autorisation navigateur est activée.</li></ul>
+      </section>
+      <section class="mk-legal-section" data-legal="blog" data-title="Blog Mkass">
+        <h3>Conseils et actualités</h3><p>Le blog Mkass partagera des conseils pour mieux réserver, découvrir des salons, améliorer la gestion d’un établissement et suivre les nouveautés de la plateforme.</p>
+        <div class="mk-legal-grid">
+          <div class="mk-legal-box"><b>Pour les clients</b>Guides pour choisir un salon, préparer son rendez-vous et gérer ses réservations.</div>
+          <div class="mk-legal-box"><b>Pour les salons</b>Conseils de gestion, fidélisation client, organisation du personnel et optimisation du planning.</div>
+          <div class="mk-legal-box"><b>Nouveautés Mkass</b>Présentation des nouvelles fonctionnalités : notifications, personnel, finance, règles et abonnements.</div>
+          <div class="mk-legal-box"><b>Disponibilité</b>Les premiers articles seront publiés progressivement après le lancement officiel.</div>
+        </div>
+      </section>
+      <section class="mk-legal-section" data-legal="sitemap" data-title="Plan du site">
+        <h3>Navigation principale</h3><ul><li>Explorer : rechercher un salon, choisir un service et réserver.</li><li>Mes réservations : retrouver une réservation avec le numéro de téléphone.</li><li>Se connecter : accès gérant, personnel et administration.</li></ul>
+        <h3>Espace professionnel</h3><ul><li>Aujourd’hui : rendez-vous du jour, walk-ins et actions rapides.</li><li>Mon salon : informations, services, photos, horaires, personnel et règles.</li><li>Finance : caisse, paiements, charges, commissions et synthèse.</li><li>Personnel : membres de l’équipe, comptes limités et planning.</li></ul>
+        <h3>Pages utiles</h3><ul><li>Aide et assistance, Blog, Tarifs, Pour les partenaires, Statut.</li><li>Mentions légales, CGV, remboursement, confidentialité et cookies.</li></ul>
+      </section>
+      <section class="mk-legal-section" data-legal="partners" data-title="Pour les partenaires">
+        <h3>Développez votre salon avec Mkass</h3><p>Mkass aide les salons, coiffeurs, barbiers et instituts à recevoir des réservations en ligne, organiser le planning et suivre l’activité depuis une interface simple.</p>
+        <div class="mk-legal-grid">
+          <div class="mk-legal-box"><b>Page salon</b>Présentez votre établissement, adresse, photos, services, prix et horaires.</div>
+          <div class="mk-legal-box"><b>Réservations</b>Recevez les demandes clients, confirmez, annulez, marquez terminé ou absent.</div>
+          <div class="mk-legal-box"><b>Personnel</b>Créez des comptes personnel limités, assignez les rendez-vous et gérez “n’importe qui”.</div>
+          <div class="mk-legal-box"><b>Finance</b>Suivez caisse, paiements, walk-ins, charges, commissions et revenus.</div>
+        </div>
+        <h3>Devenir partenaire</h3><p>Contactez Mkass pour créer votre espace salon, préparer vos services et activer votre page publique.</p>
+      </section>
+      <section class="mk-legal-section" data-legal="pricing" data-title="Tarifs">
+        <h3>Offres adaptées aux salons</h3><p>Les tarifs Mkass sont pensés pour accompagner les petits salons comme les établissements avec équipe. Les prix définitifs doivent être confirmés avant lancement commercial et affichés en dinars tunisiens (TND).</p>
+        <div class="mk-legal-grid">
+          <div class="mk-legal-box"><b>Starter</b>Page salon, services, réservations, gestion basique des rendez-vous et caisse simple.</div>
+          <div class="mk-legal-box"><b>Pro</b>Personnel, règles avancées, finance, commissions, notifications, no-show et outils de gestion avancés.</div>
+          <div class="mk-legal-box"><b>Paiement</b>Les abonnements et options payantes seront affichés en TND et traités via un prestataire de paiement autorisé.</div>
+          <div class="mk-legal-box"><b>Transparence</b>Aucun frais caché : les fonctionnalités incluses et limites seront affichées avant activation.</div>
+        </div>
+        <p class="mk-legal-note"><b>À finaliser avant mise en production :</b> ajoutez les prix réels, conditions d’essai, durée d’abonnement et éventuels frais additionnels.</p>
+      </section>
+      <section class="mk-legal-section" data-legal="pro-help" data-title="Aide professionnelle">
+        <h3>Aide pour les gérants et le personnel</h3><p>Cette rubrique accompagne les professionnels dans la configuration et l’utilisation quotidienne de Mkass.</p>
+        <h3>Configuration recommandée</h3><ul><li>Compléter les informations salon : nom, adresse, photo, carte, horaires.</li><li>Ajouter les services avec durée et prix exacts.</li><li>Créer les membres du personnel et leurs horaires.</li><li>Activer les notifications navigateur pour recevoir les nouvelles réservations et walk-ins.</li><li>Tester les réservations sur l’environnement Test avant mise en production.</li></ul>
+        <h3>Support opérationnel</h3><p>En cas de problème sur le planning, les paiements, le personnel ou les notifications, contactez le support Mkass avec le nom du salon, la date du rendez-vous et une capture d’écran si possible.</p>
+      </section>
+      <section class="mk-legal-section" data-legal="status" data-title="Statut du service">
+        <h3>État des services Mkass</h3><p>Cette page indique l’état général des principaux services Mkass. Pour la version actuelle, elle est affichée comme page informative statique.</p>
+        <div class="mk-legal-grid">
+          <div class="mk-legal-box"><b>Application web</b>Opérationnel</div>
+          <div class="mk-legal-box"><b>Réservations</b>Opérationnel</div>
+          <div class="mk-legal-box"><b>Espace gérant/personnel</b>Opérationnel</div>
+          <div class="mk-legal-box"><b>Notifications navigateur</b>En test sur l’environnement Test</div>
+          <div class="mk-legal-box"><b>Paiements en ligne</b>Préparation avant validation fournisseur</div>
+          <div class="mk-legal-box"><b>Dernière mise à jour</b><span id="mk-status-updated">Automatique au chargement</span></div>
+        </div>
+        <p class="mk-legal-note">En cas d’incident, Mkass communiquera les informations importantes aux salons partenaires et utilisateurs concernés.</p>
+      </section>
     </div>
   </div>
 </div>
@@ -2706,6 +2767,8 @@ html.dark .staff-card,html.dark .rules-card,html.dark .pro-panel{box-shadow:none
     const title = active.getAttribute('data-title') || 'Documents légaux';
     const h = document.getElementById('mk-legal-title');
     if(h) h.textContent = title;
+    const st = document.getElementById('mk-status-updated');
+    if(st) st.textContent = new Date().toLocaleDateString('fr-FR');
     overlay.classList.add('show');
     document.body.style.overflow = 'hidden';
   };

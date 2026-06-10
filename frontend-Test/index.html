@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mkass — Réservez votre coiffeur</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <style>
 :root{
@@ -16,10 +15,10 @@
   --r:12px;--rs:8px;--rl:20px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Instrument Sans',sans-serif;background:var(--ink);color:var(--white);min-height:100vh;overflow-x:hidden}
-h1,h2,h3,.logo-text,.syne{font-family:'Syne',sans-serif}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--ink);color:var(--white);min-height:100vh;overflow-x:hidden}
+h1,h2,h3,.syne{font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif}.logo-text{font-family:'Space Grotesk','Plus Jakarta Sans',Inter,Arial,sans-serif}
 ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--ink2)}::-webkit-scrollbar-thumb{background:var(--gray2);border-radius:3px}
-input,button,select,textarea{font-family:'Instrument Sans',sans-serif}
+input,button,select,textarea{font-family:'Plus Jakarta Sans',sans-serif}
 
 /* NAV */
 .nav{display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:60px;background:var(--ink2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:300}
@@ -105,7 +104,7 @@ input,button,select,textarea{font-family:'Instrument Sans',sans-serif}
 .cover-dist{position:absolute;bottom:10px;left:10px;z-index:2;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);padding:3px 9px;border-radius:99px;font-size:11px}
 .shop-body{padding:1.1rem}
 .shop-row1{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:3px}
-.shop-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;letter-spacing:-0.02em}
+.shop-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;letter-spacing:-0.02em}
 .shop-rating{display:flex;align-items:center;gap:3px;font-size:12px;color:var(--gray)}
 .shop-rating .star{color:var(--lime);font-size:11px}
 .shop-type-lbl{font-size:12px;color:var(--gray);margin-bottom:9px}
@@ -115,7 +114,7 @@ input,button,select,textarea{font-family:'Instrument Sans',sans-serif}
 .shop-foot{display:flex;align-items:center;justify-content:space-between}
 .shop-from{font-size:12px;color:var(--gray)}
 .shop-from strong{color:var(--white)}
-.book-btn{padding:7px 15px;background:var(--lime);color:var(--ink);border:none;border-radius:var(--rs);font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:all 0.15s}
+.book-btn{padding:7px 15px;background:var(--lime);color:var(--ink);border:none;border-radius:var(--rs);font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:all 0.15s}
 .book-btn:hover{background:var(--lime2)}
 
 /* MODAL */
@@ -143,13 +142,13 @@ html.dark .modal-handle::before{background:rgba(255,255,255,.72);}
 .modal-cover-ph{font-size:72px;position:relative;z-index:1}
 .modal-hdr{display:flex;gap:12px;align-items:flex-start;margin-bottom:1.25rem}
 .modal-icon{width:52px;height:52px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
-.modal-title{font-family:'Syne',sans-serif;font-size:21px;font-weight:800;letter-spacing:-0.03em}
+.modal-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:21px;font-weight:800;letter-spacing:-0.03em}
 .modal-addr{font-size:12px;color:var(--gray);margin-top:3px}
 .map-link{cursor:pointer;transition:color .15s}
 .map-link:hover{color:var(--lime);text-decoration:underline}
 .modal-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem}
 .mstat{background:var(--gray3);border-radius:var(--rs);padding:11px;text-align:center}
-.mstat-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:700}
+.mstat-val{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700}
 .mstat-val.lime{color:var(--lime)}
 .mstat-lbl{font-size:11px;color:var(--gray);margin-top:2px}
 
@@ -164,10 +163,10 @@ html.dark .modal-handle::before{background:rgba(255,255,255,.72);}
 .modal-svc-item.picked .modal-svc-check{background:var(--lime);border-color:var(--lime);color:var(--ink);font-weight:800}
 .modal-svc-name{font-size:13px;font-weight:500}
 .modal-svc-dur{font-size:11px;color:var(--gray)}
-.modal-svc-price{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--lime)}
+.modal-svc-price{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--lime)}
 .modal-total-bar{display:flex;align-items:center;justify-content:space-between;background:var(--lime-dim);border:1px solid rgba(200,255,0,0.2);border-radius:var(--rs);padding:11px 14px;margin-bottom:1rem;font-size:13px}
-.modal-total-bar strong{font-family:'Syne',sans-serif;font-size:18px;color:var(--lime)}
-.modal-book-btn{display:block;width:100%;padding:15px;background:var(--lime);color:var(--ink);border:none;border-radius:var(--r);font-family:'Syne',sans-serif;font-size:16px;font-weight:800;cursor:pointer;transition:background 0.15s;letter-spacing:-0.02em}
+.modal-total-bar strong{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;color:var(--lime)}
+.modal-book-btn{display:block;width:100%;padding:15px;background:var(--lime);color:var(--ink);border:none;border-radius:var(--r);font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:800;cursor:pointer;transition:background 0.15s;letter-spacing:-0.02em}
 .modal-book-btn:hover{background:var(--lime2)}
 .modal-book-btn:disabled{background:var(--gray2);color:var(--gray);cursor:default}
 .reviews-section{margin-top:1.5rem}
@@ -185,7 +184,7 @@ html.dark .modal-handle::before{background:rgba(255,255,255,.72);}
 .bk-wrap{max-width:800px;margin:0 auto;padding:2rem 1.5rem}
 .bk-salon-bar{display:flex;align-items:center;gap:12px;background:var(--ink2);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:2rem}
 .bk-salon-icon{width:44px;height:44px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;background:var(--gray3)}
-.bk-salon-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:700}
+.bk-salon-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700}
 .bk-salon-addr{font-size:12px;color:var(--gray);margin-top:2px}
 .steps-bar{display:flex;align-items:center;margin-bottom:2rem}
 .stp{display:flex;align-items:center;gap:7px;flex:1}
@@ -197,13 +196,13 @@ html.dark .modal-handle::before{background:rgba(255,255,255,.72);}
 .stp-line{flex:1;height:1px;background:var(--gray2);margin:0 6px}
 .sp{display:none;animation:fi 0.25s ease}
 .sp.active{display:block}
-.sp-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-0.03em;margin-bottom:1.25rem}
+.sp-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;letter-spacing:-0.03em;margin-bottom:1.25rem}
 
 /* selected services summary */
 .sel-summary{background:var(--lime-dim);border:1px solid rgba(200,255,0,0.18);border-radius:var(--rs);padding:10px 14px;margin-bottom:1.5rem;display:flex;flex-direction:column;gap:4px}
 .sel-summary-row{display:flex;justify-content:space-between;font-size:12px}
 .sel-summary-row.total{font-size:14px;font-weight:600;padding-top:6px;border-top:1px solid rgba(200,255,0,0.2);margin-top:2px}
-.sel-summary-row.total span:last-child{color:var(--lime);font-family:'Syne',sans-serif;font-size:16px}
+.sel-summary-row.total span:last-child{color:var(--lime);font-family:'Plus Jakarta Sans',sans-serif;font-size:16px}
 
 /* Multi-select service grid in booking */
 .msvc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:9px}
@@ -213,16 +212,16 @@ html.dark .modal-handle::before{background:rgba(255,255,255,.72);}
 .msvc-chk{position:absolute;top:9px;right:9px;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--gray2);display:flex;align-items:center;justify-content:center;font-size:10px;transition:all 0.15s;color:transparent}
 .msvc-card.picked .msvc-chk{background:var(--lime);border-color:var(--lime);color:var(--ink);font-weight:800}
 .msvc-cat{font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px}
-.msvc-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:-0.02em;margin-bottom:2px}
+.msvc-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;letter-spacing:-0.02em;margin-bottom:2px}
 .msvc-dur{font-size:11px;color:var(--gray);margin-bottom:8px}
-.msvc-price{font-family:'Syne',sans-serif;font-size:19px;font-weight:700;color:var(--lime)}
+.msvc-price{font-family:'Plus Jakarta Sans',sans-serif;font-size:19px;font-weight:700;color:var(--lime)}
 
 /* Calendar */
 .cal-layout{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:560px){.cal-layout{grid-template-columns:1fr}}
 .cal-box{background:var(--ink2);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem}
 .cal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
-.cal-month{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
+.cal-month{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700}
 .cal-arr{width:26px;height:26px;border:1px solid var(--border2);border-radius:6px;background:transparent;color:var(--white);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
 .cal-arr:hover{border-color:var(--lime);color:var(--lime)}
 .cal-wds{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px}
@@ -247,8 +246,8 @@ html.dark .modal-handle::before{background:rgba(255,255,255,.72);}
 /* success */
 .succ{text-align:center;padding:2.5rem 1rem}
 .succ-icon{width:72px;height:72px;border-radius:50%;background:rgba(74,222,128,0.12);border:2px solid rgba(74,222,128,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:32px}
-.succ h2{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-0.04em;margin-bottom:0.4rem}
-.ref-pill{display:inline-block;background:var(--ink2);border:1px solid var(--border2);border-radius:var(--rs);padding:8px 24px;font-family:'Syne',sans-serif;font-size:20px;font-weight:700;letter-spacing:0.08em;color:var(--lime);margin:1rem 0 1.25rem}
+.succ h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;font-weight:800;letter-spacing:-0.04em;margin-bottom:0.4rem}
+.ref-pill{display:inline-block;background:var(--ink2);border:1px solid var(--border2);border-radius:var(--rs);padding:8px 24px;font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;letter-spacing:0.08em;color:var(--lime);margin:1rem 0 1.25rem}
 .succ-detail{background:var(--ink2);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem;max-width:340px;margin:0 auto 1.75rem;text-align:left}
 .sd-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border)}
 .sd-row:last-child{border-bottom:none}
@@ -265,12 +264,12 @@ html.dark .modal-handle::before{background:rgba(255,255,255,.72);}
 .sb-badge{margin-left:auto;padding:2px 7px;background:var(--lime-dim);border-radius:99px;font-size:10px;color:var(--lime);font-weight:600}
 .dash-main{background:var(--ink);padding:1.75rem;overflow-y:auto}
 .dash-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.75rem;gap:1rem;flex-wrap:wrap}
-.dash-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.04em}
+.dash-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.04em}
 .dash-sub{font-size:12px;color:var(--gray);margin-top:3px}
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px;margin-bottom:1.75rem}
 .stat-c{background:var(--ink2);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem}
 .stat-lbl{font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:7px}
-.stat-val{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;letter-spacing:-0.04em}
+.stat-val{font-family:'Plus Jakarta Sans',sans-serif;font-size:30px;font-weight:800;letter-spacing:-0.04em}
 .stat-val.lime{color:var(--lime)}
 .stat-val.warn{color:var(--warn)}
 .stat-val.info{color:var(--info)}
@@ -279,7 +278,7 @@ html.dark .modal-handle::before{background:rgba(255,255,255,.72);}
 .dtab.active{display:block}
 .t-card{background:var(--ink2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
 .t-hdr{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px}
-.t-hdr h3{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
+.t-hdr h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700}
 .ftabs{display:flex;gap:4px;flex-wrap:wrap}
 .ftab{padding:4px 11px;border-radius:6px;border:1px solid var(--border);background:transparent;font-size:11px;cursor:pointer;color:var(--gray);transition:all 0.12s}
 .ftab:hover{border-color:var(--white);color:var(--white)}
@@ -302,13 +301,13 @@ tbody td{padding:11px 14px;font-size:13px;vertical-align:middle}
 
 /* WALK-IN / PAYMENT PANEL */
 .walkin-panel{background:var(--ink2);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;max-width:480px;margin-bottom:1.75rem}
-.walkin-panel h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:1.25rem;letter-spacing:-0.02em}
+.walkin-panel h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;margin-bottom:1.25rem;letter-spacing:-0.02em}
 .walkin-svc-check{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:1rem}
 .wsc{display:flex;align-items:center;gap:7px;padding:8px 10px;background:var(--gray3);border-radius:var(--rs);border:1.5px solid transparent;cursor:pointer;transition:all 0.12s;font-size:12px}
 .wsc.picked{border-color:var(--lime);background:var(--lime-faint);color:var(--lime)}
 .wsc input[type=checkbox]{display:none}
 .total-display{background:var(--ink3);border-radius:var(--rs);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:1rem}
-.total-display strong{font-family:'Syne',sans-serif;font-size:18px;color:var(--lime)}
+.total-display strong{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;color:var(--lime)}
 .pay-types{display:flex;gap:6px;margin-bottom:1rem}
 .pt{padding:7px 14px;border:1.5px solid var(--border2);border-radius:var(--rs);background:transparent;color:var(--gray);font-size:12px;cursor:pointer;transition:all 0.12s}
 .pt:hover{border-color:var(--white);color:var(--white)}
@@ -318,12 +317,12 @@ tbody td{padding:11px 14px;font-size:13px;vertical-align:middle}
 .svc-manage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:1.5rem}
 .svc-manage-card{background:var(--ink2);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem;position:relative}
 .svc-manage-card .smc-cat{font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px}
-.svc-manage-card .smc-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:2px}
+.svc-manage-card .smc-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;margin-bottom:2px}
 .svc-manage-card .smc-dur{font-size:11px;color:var(--gray);margin-bottom:8px}
-.svc-manage-card .smc-price{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--lime)}
+.svc-manage-card .smc-price{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;color:var(--lime)}
 .smc-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
 .add-svc-form{background:var(--ink2);border:1px solid var(--lime-dim);border-radius:var(--r);padding:1.25rem;max-width:440px}
-.add-svc-form h3{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:1rem}
+.add-svc-form h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;margin-bottom:1rem}
 .form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
 /* COVER UPLOAD */
@@ -345,7 +344,7 @@ tbody td{padding:11px 14px;font-size:13px;vertical-align:middle}
 .login-logo{display:flex;align-items:center;gap:9px;margin-bottom:2rem}
 .login-logo .logo-mark{width:40px;height:40px}
 .login-logo .logo-text{font-size:24px}
-.login-card h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-0.03em;margin-bottom:4px}
+.login-card h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800;letter-spacing:-0.03em;margin-bottom:4px}
 .login-card p{font-size:13px;color:var(--gray);margin-bottom:1.5rem}
 .salon-opts{display:flex;flex-direction:column;gap:7px;margin-bottom:1.25rem}
 .salon-opt{display:flex;align-items:center;gap:10px;padding:9px 13px;background:var(--gray3);border-radius:var(--rs);border:2px solid transparent;cursor:pointer;transition:all 0.15s}
@@ -358,12 +357,12 @@ tbody td{padding:11px 14px;font-size:13px;vertical-align:middle}
 /* ADMIN */
 .admin-notice{background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);border-radius:var(--rs);padding:10px 14px;font-size:13px;color:var(--info);margin-bottom:1.5rem;display:flex;align-items:center;gap:8px}
 .new-salon-form{background:var(--ink2);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;max-width:460px}
-.new-salon-form h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:1.25rem}
+.new-salon-form h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;margin-bottom:1.25rem}
 
 /* BALANCE HISTORY */
 .balance-header{display:flex;align-items:center;justify-content:space-between;background:var(--lime-dim);border:1px solid rgba(200,255,0,0.2);border-radius:var(--r);padding:1.25rem 1.5rem;margin-bottom:1.5rem}
 .balance-title{font-size:13px;color:var(--gray)}
-.balance-amount{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:var(--lime);letter-spacing:-0.04em}
+.balance-amount{font-family:'Plus Jakarta Sans',sans-serif;font-size:36px;font-weight:800;color:var(--lime);letter-spacing:-0.04em}
 .balance-sub{font-size:11px;color:var(--gray);margin-top:3px}
 .hist-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px}
 .hist-item:last-child{border-bottom:none}
@@ -371,19 +370,19 @@ tbody td{padding:11px 14px;font-size:13px;vertical-align:middle}
 .hist-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .hist-label{font-weight:500}
 .hist-meta{font-size:11px;color:var(--gray)}
-.hist-amount{font-family:'Syne',sans-serif;font-weight:700}
+.hist-amount{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700}
 .hist-amount.positive{color:var(--success)}
 
 /* CUSTOMER BOOKINGS PAGE */
 .my-bookings-wrap{max-width:760px;margin:0 auto;padding:2rem 1.5rem}
 .my-bookings-hero{background:var(--ink2);border:1px solid var(--border);border-radius:var(--rl);padding:1.5rem;margin-bottom:1.25rem}
-.my-bookings-title{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-0.04em;margin-bottom:.35rem}
+.my-bookings-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;font-weight:800;letter-spacing:-0.04em;margin-bottom:.35rem}
 .my-bookings-sub{color:var(--gray);font-size:14px;line-height:1.6;margin-bottom:1rem}
 .my-bookings-form{display:flex;gap:10px}
 .my-bookings-form .f-input{flex:1}
 .booking-card{background:var(--ink2);border:1px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:10px}
 .booking-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
-.booking-card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:16px}
+.booking-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px}
 .booking-card-meta{color:var(--gray);font-size:12px;margin-top:3px}
 .booking-card-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--border);font-size:13px}
 .booking-card-row span:first-child{color:var(--gray)}
@@ -1636,10 +1635,10 @@ html.dark{
   --mk-card:#171b18 !important;
 }
 html,body,input,button,select,textarea,table,td,th,.ntab,.nav-pill,.btn,.chip,.f-input,.shop-tag,.shop-type-lbl,.shop-from,.finance-pro{
-  font-family:'Instrument Sans', Inter, Arial, sans-serif !important;
+  font-family:'Plus Jakarta Sans', Inter, Arial, sans-serif !important;
 }
 h1,h2,h3,.logo-text,.mkass-word,.hero h1,.mk-hero h1,.my-bookings-title,.signup-title,.dash-title,.sp-title,.modal-title,.section-title,.finance-title,.finance-section-title{
-  font-family:'Syne', 'Instrument Sans', sans-serif !important;
+  font-family:'Plus Jakarta Sans', 'Plus Jakarta Sans', sans-serif !important;
   letter-spacing:-.04em !important;
 }
 .logo-mark{background:#1ba640 !important;border-radius:11px !important;}
@@ -1663,7 +1662,7 @@ html.dark .logo-text,html.dark .mkass-word{color:#fff !important;}
   body.admin-logged .nav-tabs{grid-template-columns:repeat(3,1fr) !important;}
   body.admin-logged #nt-explore,body.admin-logged #nt-my-bookings,body.admin-logged #nt-dash{display:flex !important;}
   body.admin-logged #nt-login-mobile{display:none !important;}
-  .ntab{font-family:'Instrument Sans',Arial,sans-serif !important;font-weight:800 !important;}
+  .ntab{font-family:'Plus Jakarta Sans',Arial,sans-serif !important;font-weight:800 !important;}
 }
 /* Finance Pro */
 .finance-pro{display:grid;gap:18px;color:var(--mk-text);}
@@ -1677,13 +1676,13 @@ html.dark .logo-text,html.dark .mkass-word{color:#fff !important;}
 .finance-card{background:var(--mk-panel);border:1px solid var(--mk-border);border-radius:24px;padding:18px;box-shadow:0 14px 36px rgba(0,0,0,.045);}
 html.dark .finance-card{box-shadow:none;}
 .finance-kpi-label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mk-soft-text);font-weight:800;margin-bottom:12px;}
-.finance-kpi-value{font-family:'Instrument Sans',sans-serif!important;font-size:29px!important;line-height:1.05;font-weight:850!important;letter-spacing:-.02em!important;font-variant-numeric:tabular-nums;color:var(--mk-text);}
+.finance-kpi-value{font-family:'Plus Jakarta Sans',sans-serif!important;font-size:29px!important;line-height:1.05;font-weight:850!important;letter-spacing:-.02em!important;font-variant-numeric:tabular-nums;color:var(--mk-text);}
 .finance-kpi-value.green{color:#1ba640;}.finance-kpi-note{font-size:13px;color:var(--mk-soft-text);margin-top:8px;}
 .finance-grid-2{display:grid;grid-template-columns:1.05fr .95fr;gap:18px;}
 .finance-section-title{font-size:22px;font-weight:800;color:var(--mk-text);margin-bottom:4px;}
 .finance-section-sub{font-size:13px;color:var(--mk-soft-text);margin-bottom:16px;}
 .finance-bars{display:grid;gap:10px;margin-top:12px;}.finance-bar-row{display:grid;grid-template-columns:120px 1fr 85px;align-items:center;gap:12px;font-size:13px;color:var(--mk-text);}.finance-bar{height:10px;border-radius:999px;background:rgba(27,166,64,.12);overflow:hidden;}.finance-bar span{display:block;height:100%;border-radius:999px;background:#1ba640;}
-.finance-table-wrap{overflow:auto;border-radius:18px;border:1px solid var(--mk-border);}.finance-table{width:100%;border-collapse:collapse;min-width:620px;background:var(--mk-panel);}.finance-table th{background:var(--mk-panel-2);font-size:11px;color:var(--mk-soft-text);text-transform:uppercase;letter-spacing:.07em;font-weight:800;padding:12px;text-align:left;}.finance-table td{font-size:14px;color:var(--mk-text);padding:13px 12px;border-top:1px solid var(--mk-border);}.finance-money{font-family:'Instrument Sans',sans-serif!important;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap;}.finance-positive{color:#1ba640}.finance-muted{color:var(--mk-soft-text)!important}.finance-form{display:grid;gap:10px}.finance-form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.finance-form .btn{justify-content:center;min-height:48px;border-radius:16px;}.finance-expenses-list{display:grid;gap:10px;margin-top:14px;}.finance-expense-item{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid var(--mk-border);border-radius:16px;padding:12px;background:var(--mk-panel);}.finance-expense-item strong{font-size:14px;color:var(--mk-text)}.finance-expense-item small{display:block;margin-top:3px;color:var(--mk-soft-text);font-size:12px}.finance-chip{display:inline-flex;align-items:center;border-radius:999px;background:rgba(27,166,64,.12);color:#1ba640;padding:5px 9px;font-size:12px;font-weight:800;}.finance-pro-lock{display:none;background:rgba(251,176,64,.12);border:1px solid rgba(251,176,64,.25);border-radius:18px;padding:14px;color:var(--mk-text);margin-bottom:14px;}body:not(.plan-pro) .finance-pro-lock{display:block;}
+.finance-table-wrap{overflow:auto;border-radius:18px;border:1px solid var(--mk-border);}.finance-table{width:100%;border-collapse:collapse;min-width:620px;background:var(--mk-panel);}.finance-table th{background:var(--mk-panel-2);font-size:11px;color:var(--mk-soft-text);text-transform:uppercase;letter-spacing:.07em;font-weight:800;padding:12px;text-align:left;}.finance-table td{font-size:14px;color:var(--mk-text);padding:13px 12px;border-top:1px solid var(--mk-border);}.finance-money{font-family:'Plus Jakarta Sans',sans-serif!important;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap;}.finance-positive{color:#1ba640}.finance-muted{color:var(--mk-soft-text)!important}.finance-form{display:grid;gap:10px}.finance-form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.finance-form .btn{justify-content:center;min-height:48px;border-radius:16px;}.finance-expenses-list{display:grid;gap:10px;margin-top:14px;}.finance-expense-item{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid var(--mk-border);border-radius:16px;padding:12px;background:var(--mk-panel);}.finance-expense-item strong{font-size:14px;color:var(--mk-text)}.finance-expense-item small{display:block;margin-top:3px;color:var(--mk-soft-text);font-size:12px}.finance-chip{display:inline-flex;align-items:center;border-radius:999px;background:rgba(27,166,64,.12);color:#1ba640;padding:5px 9px;font-size:12px;font-weight:800;}.finance-pro-lock{display:none;background:rgba(251,176,64,.12);border:1px solid rgba(251,176,64,.25);border-radius:18px;padding:14px;color:var(--mk-text);margin-bottom:14px;}body:not(.plan-pro) .finance-pro-lock{display:block;}
 @media(max-width:900px){.finance-kpis{grid-template-columns:1fr 1fr;gap:10px;}.finance-grid-2{grid-template-columns:1fr;}.finance-card{border-radius:22px;padding:15px;}.finance-kpi-value{font-size:24px!important;}.finance-title{font-size:28px;}.finance-form-row{grid-template-columns:1fr;}.finance-bar-row{grid-template-columns:90px 1fr 70px;gap:8px;}}
 </style>
 
@@ -1926,9 +1925,9 @@ html.dark .logo-text,html.dark .mkass-word{color:#fff !important;}
 
 <style id="mkass-smart-scheduling-rules-css">
 /* Smart scheduling + salon rules: integrates with existing Mkass mobile UI */
-.staff-pro,.rules-pro{display:grid;gap:16px;color:var(--mk-text);font-family:'Instrument Sans',sans-serif;}
+.staff-pro,.rules-pro{display:grid;gap:16px;color:var(--mk-text);font-family:'Plus Jakarta Sans',sans-serif;}
 .staff-head,.rules-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;}
-.staff-title,.rules-title{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;letter-spacing:-.04em;line-height:1;color:var(--mk-text);}
+.staff-title,.rules-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:30px;font-weight:800;letter-spacing:-.04em;line-height:1;color:var(--mk-text);}
 .staff-sub,.rules-sub{font-size:14px;color:var(--mk-soft-text);line-height:1.5;margin-top:6px;}
 .staff-grid{display:grid;grid-template-columns:minmax(260px,.9fr) minmax(320px,1.1fr);gap:14px;align-items:start;}
 .staff-card,.rules-card,.pro-panel{background:var(--mk-panel);border:1px solid var(--mk-border);border-radius:24px;padding:18px;box-shadow:0 14px 36px rgba(0,0,0,.045);}
@@ -1952,7 +1951,7 @@ html.dark .staff-card,html.dark .rules-card,html.dark .pro-panel{box-shadow:none
 .staff-hours-row input[type=checkbox]{accent-color:var(--mk-green);}
 .staff-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
 .staff-selector{background:var(--mk-panel);border:1px solid var(--mk-border);border-radius:22px;padding:14px;margin:0 0 14px;box-shadow:0 12px 30px rgba(0,0,0,.04);}
-.staff-selector-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;letter-spacing:-.03em;margin-bottom:5px;color:var(--mk-text);}
+.staff-selector-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:800;letter-spacing:-.03em;margin-bottom:5px;color:var(--mk-text);}
 .staff-selector-sub{font-size:13px;color:var(--mk-soft-text);margin-bottom:12px;}
 .staff-choice-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;}
 .staff-choice{border:1.5px solid var(--mk-border);background:var(--mk-panel-2);border-radius:16px;min-height:50px;padding:10px 12px;text-align:left;color:var(--mk-text);font-weight:800;cursor:pointer;}
@@ -1960,7 +1959,7 @@ html.dark .staff-card,html.dark .rules-card,html.dark .pro-panel{box-shadow:none
 .staff-choice.active{border-color:var(--mk-green);background:rgba(27,166,64,.12);color:var(--mk-green);}
 .rules-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
 .rule-switch{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;}
-.rule-switch strong{font-family:'Syne',sans-serif;font-size:20px;letter-spacing:-.03em;color:var(--mk-text);}
+.rule-switch strong{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;letter-spacing:-.03em;color:var(--mk-text);}
 .rule-switch small{display:block;color:var(--mk-soft-text);font-size:13px;margin-top:3px;line-height:1.4;}
 .mk-switch{position:relative;width:54px;height:31px;display:inline-block;flex-shrink:0;}
 .mk-switch input{display:none;}
@@ -4016,11 +4015,12 @@ window.onload=()=>{document.body.classList.add("show-explore-footer");renderShop
 </script>
 
 
-<!-- MKASS RAILWAY API INTEGRATION - ADDED BY CHATGPT -->
+<!-- MKASS RAILWAY API INTEGRATION - T -->
 <script>
 // MKASS TEST API - do not point this file to production
 const API = 'https://mkass-backend-test.up.railway.app/api';
 console.log('MKASS TEST FRONTEND ACTIVE');
+  console.log('MKASS GLOBAL FONT FIX ACTIVE');
 console.log('MKASS API USED:', API);
   let authToken = localStorage.getItem("mkass_auth_token") || null;
 let authRole = localStorage.getItem("mkass_auth_role") || null;
@@ -5107,17 +5107,17 @@ installStaffAndRulesTabs();
 
 <style id="mkass-salon-hub-visible-fix">
 /* Visible Salon hub for gérant mobile UI: Aujourd'hui | Finance | Salon */
-.salon-hub-wrap{max-width:1120px;margin:0 auto;padding:0 0 2rem;font-family:'Instrument Sans',sans-serif!important;color:var(--mk-text,#101010)}
+.salon-hub-wrap{max-width:1120px;margin:0 auto;padding:0 0 2rem;font-family:'Plus Jakarta Sans',sans-serif!important;color:var(--mk-text,#101010)}
 .salon-hub-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px;flex-wrap:wrap}
 .salon-hub-kicker{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#1ba640;margin-bottom:8px}
-.salon-hub-title{font-family:'Syne',sans-serif!important;font-size:34px;line-height:1;letter-spacing:-.045em;font-weight:800;color:var(--mk-text,#101010)}
+.salon-hub-title{font-family:'Plus Jakarta Sans',sans-serif!important;font-size:34px;line-height:1;letter-spacing:-.045em;font-weight:800;color:var(--mk-text,#101010)}
 .salon-hub-sub{font-size:14px;line-height:1.55;color:var(--mk-soft-text,#656760);margin-top:8px;max-width:620px}
 .salon-hub-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}
 .salon-hub-card{border:1px solid var(--mk-border,#dedbd2);background:var(--mk-panel,#fff);border-radius:24px;padding:18px;cursor:pointer;transition:.16s;box-shadow:var(--mk-shadow,0 18px 48px rgba(16,16,16,.07));display:flex;align-items:flex-start;justify-content:space-between;gap:14px;min-height:124px}
 .salon-hub-card:hover{transform:translateY(-2px);border-color:#1ba640;box-shadow:0 20px 52px rgba(27,166,64,.10)}
-.salon-hub-card h3{font-family:'Syne',sans-serif!important;font-size:20px;letter-spacing:-.035em;color:var(--mk-text,#101010);margin:0 0 7px;font-weight:800}
-.salon-hub-card p{font-family:'Instrument Sans',sans-serif!important;font-size:13px;line-height:1.5;color:var(--mk-soft-text,#656760);margin:0}
-.salon-hub-chip{font-family:'Instrument Sans',sans-serif!important;font-size:11px;font-weight:800;color:#07110b;background:#1ba640;border-radius:999px;padding:7px 10px;white-space:nowrap}
+.salon-hub-card h3{font-family:'Plus Jakarta Sans',sans-serif!important;font-size:20px;letter-spacing:-.035em;color:var(--mk-text,#101010);margin:0 0 7px;font-weight:800}
+.salon-hub-card p{font-family:'Plus Jakarta Sans',sans-serif!important;font-size:13px;line-height:1.5;color:var(--mk-soft-text,#656760);margin:0}
+.salon-hub-chip{font-family:'Plus Jakarta Sans',sans-serif!important;font-size:11px;font-weight:800;color:#07110b;background:#1ba640;border-radius:999px;padding:7px 10px;white-space:nowrap}
 .salon-hub-arrow{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:rgba(27,166,64,.12);color:#1ba640;font-weight:900;flex:0 0 36px;margin-top:auto}
 html.dark .salon-hub-wrap{color:#f6f6f1}html.dark .salon-hub-card{background:var(--mk-panel,#171b18);border-color:var(--mk-border,rgba(255,255,255,.14));box-shadow:none}html.dark .salon-hub-card h3,.dark .salon-hub-title{color:#f6f6f1}
 @media(max-width:900px){
@@ -5247,14 +5247,14 @@ html, body, input, button, select, textarea,
 .nav-pill, .ntab, .btn, .chip, .f-input,
 .salon-hub-wrap, .salon-hub-sub, .salon-hub-card p,
 .finance-pro, .staff-pro, .rules-pro, table, td, th {
-  font-family:'Instrument Sans', Inter, Arial, sans-serif!important;
+  font-family:'Plus Jakarta Sans', Inter, Arial, sans-serif!important;
 }
 .logo-text, .mkass-word,
 .mk-hero h1, .hero h1,
 .salon-hub-title, .salon-hub-card h3,
 .dash-title, .sp-title, .finance-title, .finance-section-title,
 .staff-title, .rules-title, .my-bookings-title, .signup-title {
-  font-family:'Syne','Instrument Sans',sans-serif!important;
+  font-family:'Plus Jakarta Sans','Plus Jakarta Sans',sans-serif!important;
   font-weight:800!important;
   letter-spacing:-.045em!important;
   text-transform:none!important;
@@ -5266,7 +5266,7 @@ html, body, input, button, select, textarea,
 /* Salon hub typography: calmer, premium, readable */
 .salon-hub-wrap{color:var(--mk-text,#101010)!important;}
 .salon-hub-kicker{
-  font-family:'Instrument Sans',Inter,Arial,sans-serif!important;
+  font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;
   font-size:12px!important;
   letter-spacing:.08em!important;
   font-weight:800!important;
@@ -5320,7 +5320,7 @@ html.dark .salon-hub-card{box-shadow:none!important;}
   min-height:28px!important;
   padding:0 11px!important;
   border-radius:999px!important;
-  font-family:'Instrument Sans',Inter,Arial,sans-serif!important;
+  font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;
   font-size:12px!important;
   font-weight:800!important;
   background:rgba(27,166,64,.14)!important;
@@ -5349,7 +5349,7 @@ body:not(.plan-pro) .salon-hub-card.pro-locked::after{
   padding:7px 11px;
   background:rgba(16,16,16,.82);
   color:#fff;
-  font-family:'Instrument Sans',Inter,Arial,sans-serif;
+  font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif;
   font-size:12px;
   font-weight:800;
   letter-spacing:-.01em;
@@ -5423,7 +5423,7 @@ body:not(.plan-pro) .finance-pro-lock{display:block!important;}
 
 <style id="mkass-professional-font-override-v2">
 /* PROFESSIONAL MKASS FONT OVERRIDE
-   The previous patch used Syne for the Salon hub titles, which looked too stretched.
+   The previous patch used Plus Jakarta Sans for the Salon hub titles, which looked too stretched.
    This restores the professional app font: Plus Jakarta Sans for headings, Inter for UI/body.
 */
 :root{
@@ -5442,10 +5442,10 @@ input, button, select, textarea,
 .salon-hub-chip,
 .finance-pro, .staff-pro, .rules-pro,
 table, td, th {
-  font-family:'Inter','Instrument Sans',Arial,sans-serif !important;
+  font-family:'Inter','Plus Jakarta Sans',Arial,sans-serif !important;
 }
 
-/* Professional display titles: not Syne, not Space Grotesk */
+/* Professional display titles: not Plus Jakarta Sans, not Space Grotesk */
 .mk-hero h1,
 .hero h1,
 .shops-meta h2,
@@ -5525,7 +5525,7 @@ body:not(.plan-pro) .salon-hub-card.pro-locked{
   cursor:not-allowed !important;
 }
 body:not(.plan-pro) .salon-hub-card.pro-locked::after{
-  font-family:'Inter','Instrument Sans',Arial,sans-serif !important;
+  font-family:'Inter','Plus Jakarta Sans',Arial,sans-serif !important;
   content:'Pack Pro requis' !important;
 }
 
@@ -5564,7 +5564,7 @@ body:not(.plan-pro) .salon-hub-card.pro-locked::after{
   justify-content:center !important;
   background:rgba(101,103,96,.16) !important;
   color:var(--mk-soft-text,#656760) !important;
-  font-family:'Inter','Instrument Sans',Arial,sans-serif !important;
+  font-family:'Inter','Plus Jakarta Sans',Arial,sans-serif !important;
   font-size:11px !important;
   font-weight:850 !important;
   letter-spacing:-.01em !important;
@@ -5603,7 +5603,7 @@ body.plan-pro .salon-hub-card.pro-locked .salon-hub-arrow{
   color:#1ba640 !important;
 }
 
-/* Keep the professional font, not stretched Syne, for this gérant area */
+/* Keep the professional font, not stretched Plus Jakarta Sans, for this gérant area */
 .salon-hub-title,
 .salon-hub-card h3,
 .dash-title,
@@ -5611,13 +5611,13 @@ body.plan-pro .salon-hub-card.pro-locked .salon-hub-arrow{
 .finance-section-title,
 .staff-title,
 .rules-title{
-  font-family:'Plus Jakarta Sans','Inter','Instrument Sans',Arial,sans-serif !important;
+  font-family:'Plus Jakarta Sans','Inter','Plus Jakarta Sans',Arial,sans-serif !important;
   font-weight:800 !important;
   letter-spacing:-.04em !important;
   text-transform:none !important;
 }
 .sidebar .sb-btn{
-  font-family:'Inter','Instrument Sans',Arial,sans-serif !important;
+  font-family:'Inter','Plus Jakarta Sans',Arial,sans-serif !important;
   font-weight:750 !important;
 }
 </style>
@@ -6960,7 +6960,7 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
 
 <!-- MKASS BROWSER PUSH NOTIFICATIONS - TEST UI FIX -->
 <style id="mkass-browser-push-css">
-.mkass-push-btn{position:relative;display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--border2);background:transparent;color:var(--gray);border-radius:var(--rs);padding:7px 13px;font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .16s ease;white-space:nowrap}
+.mkass-push-btn{position:relative;display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--border2);background:transparent;color:var(--gray);border-radius:var(--rs);padding:7px 13px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .16s ease;white-space:nowrap}
 .mkass-push-btn:hover{border-color:var(--lime);color:var(--lime);background:var(--lime-dim)}
 .mkass-push-btn.is-on{background:var(--lime);border-color:var(--lime);color:var(--ink)}
 .mkass-push-btn.is-waiting{opacity:.65;pointer-events:none}
@@ -6968,11 +6968,11 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
 .mkass-push-btn.is-on .mkass-push-dot{background:var(--ink);animation:mkassPushPulse 1.7s infinite}
 @keyframes mkassPushPulse{0%{box-shadow:0 0 0 0 rgba(200,255,0,.35)}70%{box-shadow:0 0 0 8px rgba(200,255,0,0)}100%{box-shadow:0 0 0 0 rgba(200,255,0,0)}}
 .mkass-notification-stack{position:fixed;right:18px;bottom:86px;z-index:200000;display:grid;gap:10px;width:min(380px,calc(100vw - 32px));pointer-events:none}
-.mkass-notification-card{background:var(--ink2);border:1px solid var(--border2);border-left:4px solid var(--lime);border-radius:var(--r);box-shadow:0 18px 60px rgba(0,0,0,.38);padding:13px 14px;color:var(--white);font-family:'Instrument Sans',sans-serif;transform:translateY(16px);opacity:0;animation:mkassNotifyIn .22s ease forwards}
+.mkass-notification-card{background:var(--ink2);border:1px solid var(--border2);border-left:4px solid var(--lime);border-radius:var(--r);box-shadow:0 18px 60px rgba(0,0,0,.38);padding:13px 14px;color:var(--white);font-family:'Plus Jakarta Sans','Plus Jakarta Sans',sans-serif;transform:translateY(16px);opacity:0;animation:mkassNotifyIn .22s ease forwards}
 @keyframes mkassNotifyIn{to{transform:translateY(0);opacity:1}}
-.mkass-notification-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}.mkass-notification-title{display:flex;align-items:center;gap:8px;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;letter-spacing:-.03em;color:var(--white)}.mkass-notification-mark{width:26px;height:26px;border-radius:7px;background:var(--lime);display:flex;align-items:center;justify-content:center;flex:0 0 auto}.mkass-notification-mark svg{width:16px;height:16px}.mkass-notification-time{font-size:10px;font-weight:700;color:var(--gray);white-space:nowrap}.mkass-notification-body{padding-left:34px;font-size:12px;font-weight:600;line-height:1.45;color:var(--gray)}.mkass-notification-body strong{color:var(--white)}
-.mkass-push-floating{position:fixed;right:16px;bottom:96px;z-index:99990;background:var(--ink2);box-shadow:0 14px 45px rgba(0,0,0,.25);display:none}
-@media(max-width:640px){.mkass-notification-stack{left:12px;right:12px;bottom:82px;width:auto}.mkass-push-btn{padding:8px 12px;font-size:11px}.mkass-push-floating{right:12px;bottom:88px;display:inline-flex}}
+.mkass-notification-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}.mkass-notification-title{display:flex;align-items:center;gap:8px;font-family:'Plus Jakarta Sans','Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:800;letter-spacing:-.04em;color:var(--white)}.mkass-notification-mark{width:26px;height:26px;border-radius:7px;background:var(--lime);display:flex;align-items:center;justify-content:center;flex:0 0 auto}.mkass-notification-mark svg{width:16px;height:16px}.mkass-notification-time{font-family:'Plus Jakarta Sans',sans-serif;font-size:10px;font-weight:700;color:var(--gray);white-space:nowrap}.mkass-notification-body{padding-left:34px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;line-height:1.45;color:var(--gray)}.mkass-notification-body strong{color:var(--white);font-family:'Plus Jakarta Sans','Plus Jakarta Sans',sans-serif;font-weight:800;letter-spacing:-.03em}
+.mkass-push-floating{position:fixed;right:16px;bottom:96px;z-index:99990;background:var(--ink2);box-shadow:0 14px 45px rgba(0,0,0,.25)}
+@media(max-width:640px){.mkass-notification-stack{left:12px;right:12px;bottom:82px;width:auto}.mkass-push-btn{padding:7px 11px;font-size:11px}.mkass-push-floating{right:12px;bottom:86px}}
 </style>
 <script id="mkass-browser-push-js">
 (function mkassBrowserPush(){
@@ -7063,9 +7063,7 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
       const holder = document.createElement('div'); holder.style.marginTop = '10px'; holder.appendChild(makeButton('mkass-staff-push-btn')); staffCard.appendChild(holder);
     }
 
-    // Always create the floating mobile button. It is hidden on desktop by CSS and shown on mobile.
-    // This avoids the button being inserted inside a desktop-only header that is not visible on phones.
-    if(!document.getElementById('mkass-push-floating-btn')){
+    if(!document.getElementById('mkass-push-btn') && !document.getElementById('mkass-staff-push-btn') && !document.getElementById('mkass-push-floating-btn')){
       document.body.appendChild(makeButton('mkass-push-floating-btn', true));
     }
 
@@ -7214,3 +7212,51 @@ html.dark .staff-lite-note{background:rgba(27,166,64,.13);color:#f6f6f1}html.dar
   };
 })();
 </script>
+
+
+<!-- MKASS NOTIFICATION ALL FONTS FIX -->
+<style id="mkass-notification-all-fonts-fix">
+/* Make every notification-related element match the dashboard greeting font style */
+#toast, .toast,
+.mkass-push-btn, .mkass-push-btn *,
+.mkass-push-floating, .mkass-push-floating *,
+.mkass-notification-stack, .mkass-notification-stack *,
+.mkass-notification-card, .mkass-notification-card *,
+.mkass-notification-title,
+.mkass-notification-time,
+.mkass-notification-body,
+.mkass-notification-body strong {
+  font-family:'Plus Jakarta Sans','Inter',Arial,sans-serif !important;
+}
+
+.mkass-notification-title,
+.mkass-notification-body strong {
+  font-weight:800 !important;
+  letter-spacing:-0.045em !important;
+}
+
+.mkass-notification-body {
+  font-weight:650 !important;
+  letter-spacing:-0.015em !important;
+}
+
+.mkass-notification-time,
+.mkass-push-btn {
+  font-weight:800 !important;
+  letter-spacing:-0.02em !important;
+}
+
+#toast, .toast {
+  font-weight:750 !important;
+  letter-spacing:-0.018em !important;
+}
+
+
+/* MKASS GLOBAL TYPOGRAPHY NORMALIZATION - removes old notification/Syne/Instrument look from all screens */
+body, input, button, select, textarea, .view, .modal, .modal *, .dashboard, .dashboard *, .staff-lite-wrap, .staff-lite-wrap *, .salon-hub-wrap, .salon-hub-wrap *, .finance-pro, .finance-pro *, .staff-pro, .staff-pro *, .rules-pro, .rules-pro *, .mkass-clean-modal, .mkass-clean-modal *, .mkass-notification-card, .mkass-notification-card *, .mkass-push-btn, .mkass-push-mobile-btn {
+  font-family:'Plus Jakarta Sans', Inter, Arial, sans-serif !important;
+}
+.logo-text, .mkass-word {
+  font-family:'Space Grotesk','Plus Jakarta Sans',Inter,Arial,sans-serif !important;
+}
+</style>

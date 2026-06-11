@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mkass — Réservez votre coiffeur</title>
+<meta name="description" content="Mkass aide les salons, coiffeurs et barbiers à recevoir des réservations, gérer le planning, le personnel et la caisse depuis le web et le mobile.">
+<meta name="theme-color" content="#101010">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mkass">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <style>
 :root{
@@ -1988,6 +1999,34 @@ html.dark .staff-card,html.dark .rules-card,html.dark .pro-panel{box-shadow:none
   .staff-hours-row label{grid-column:1/-1;}
   .staff-choice-list{grid-template-columns:1fr;}
 }
+</style>
+
+
+<style id="mkass-pwa-native-polish-css">
+/* Mkass PWA/native-app polish: safe on mobile, keeps desktop layout unchanged */
+html{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;overscroll-behavior-y:none;scroll-behavior:smooth;}
+body{min-height:100vh;min-height:100dvh;overscroll-behavior-y:none;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+a,button,.btn,.ntab,.chip,.shop-card,.book-btn,.slot,.msvc-card,.staff-item,.staff-choice,.mkass-push-btn,.mkass-push-floating,.manager-mobile-cta{
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none;
+}
+input,textarea,select,[contenteditable="true"]{user-select:text!important;-webkit-user-select:text!important;}
+button,.btn,.ntab,.chip,.book-btn,.slot,.staff-choice,.mkass-push-btn,.mkass-push-floating{transform:translateZ(0);}
+button:active,.btn:active,.ntab:active,.chip:active,.book-btn:active,.slot:active,.staff-choice:active,.mkass-push-btn:active,.mkass-push-floating:active{transform:scale(.985);}
+img,svg{user-select:none;-webkit-user-drag:none;}
+@supports(padding:max(0px)){
+  body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);}
+}
+@media(max-width:680px){
+  body{padding-bottom:calc(112px + env(safe-area-inset-bottom,0px))!important;}
+  .nav{padding-top:env(safe-area-inset-top,0px)!important;height:calc(70px + env(safe-area-inset-top,0px))!important;}
+  .nav-tabs{bottom:calc(14px + env(safe-area-inset-bottom,0px))!important;}
+  .step-acts{bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;}
+  .mkass-push-floating{bottom:calc(98px + env(safe-area-inset-bottom,0px))!important;}
+}
+.mkass-install-ready .mk-download{border-color:rgba(40,211,107,.45)!important;box-shadow:0 14px 36px rgba(40,211,107,.13)!important;}
+.mkass-skeleton{position:relative;overflow:hidden;background:linear-gradient(90deg,rgba(127,127,127,.10),rgba(127,127,127,.18),rgba(127,127,127,.10));background-size:220% 100%;animation:mkassSkeleton 1.15s ease-in-out infinite;border-radius:18px;min-height:18px;}
+@keyframes mkassSkeleton{0%{background-position:220% 0}100%{background-position:-220% 0}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}}
 </style>
 
 </head>
@@ -7238,6 +7277,80 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
     wrappedStaff.__mkassPushWrapped = true; window.showStaffLiteDashboard = wrappedStaff;
   }
   window.addEventListener('load', () => { setTimeout(window.mkassInstallPushButton, 700); setInterval(window.mkassInstallPushButton, 3000); });
+})();
+</script>
+
+
+<script id="mkass-pwa-native-polish-js">
+(function(){
+  window.MKASS_PWA_VERSION = 'pwa-polish-1';
+  let deferredInstallPrompt = null;
+
+  function haptic(ms){
+    try{ if(navigator.vibrate) navigator.vibrate(ms || 12); }catch(e){}
+  }
+  window.mkassHaptic = haptic;
+
+  window.addEventListener('pointerup', function(e){
+    if(e.target && e.target.closest && e.target.closest('button,.btn,.ntab,.chip,.book-btn,.slot,.staff-choice,.mkass-push-btn,.mkass-push-floating')) haptic(8);
+  }, {passive:true});
+
+  function setThemeColor(){
+    const isDark = document.documentElement.classList.contains('dark') || document.body.classList.contains('dark');
+    const color = isDark ? '#101010' : '#f7f6f1';
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.setAttribute('content', color));
+  }
+  setThemeColor();
+  new MutationObserver(setThemeColor).observe(document.documentElement,{attributes:true,attributeFilter:['class']});
+
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    document.body.classList.add('mkass-install-ready');
+  });
+
+  window.mkassInstallPwa = async function(){
+    haptic(18);
+    if(deferredInstallPrompt){
+      deferredInstallPrompt.prompt();
+      try{ await deferredInstallPrompt.userChoice; }catch(e){}
+      deferredInstallPrompt = null;
+      document.body.classList.remove('mkass-install-ready');
+      return;
+    }
+    if(navigator.share){
+      try{
+        await navigator.share({title:'Mkass',text:'Réservez et gérez vos rendez-vous salon avec Mkass.',url:location.origin});
+        return;
+      }catch(e){}
+    }
+    if(typeof toast==='function') toast('Pour installer Mkass: menu du navigateur puis “Ajouter à l’écran d’accueil”.');
+    else alert('Pour installer Mkass: menu du navigateur puis “Ajouter à l’écran d’accueil”.');
+  };
+
+  window.mkassShareCurrentPage = async function(title, text, url){
+    haptic(14);
+    const payload = { title: title || 'Mkass', text: text || 'Découvrez Mkass', url: url || location.href };
+    if(navigator.share){
+      try{ await navigator.share(payload); return true; }catch(e){ return false; }
+    }
+    try{ await navigator.clipboard.writeText(payload.url); if(typeof toast==='function') toast('Lien copié'); return true; }catch(e){}
+    return false;
+  };
+
+  document.addEventListener('click', function(e){
+    const install = e.target.closest && e.target.closest('.mk-download,[data-mkass-install]');
+    if(install){ e.preventDefault(); window.mkassInstallPwa(); return; }
+    const share = e.target.closest && e.target.closest('[data-mkass-share]');
+    if(share){ e.preventDefault(); window.mkassShareCurrentPage(share.getAttribute('data-share-title'), share.getAttribute('data-share-text'), share.getAttribute('data-share-url')); }
+  });
+
+  // Keep existing push notification service worker active; the service worker also powers PWA install/offline shell.
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('/sw.js').catch(function(err){ console.warn('Mkass service worker registration skipped:', err); });
+    });
+  }
 })();
 </script>
 

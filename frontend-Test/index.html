@@ -2021,7 +2021,7 @@ img,svg{user-select:none;-webkit-user-drag:none;}
   .nav{padding-top:env(safe-area-inset-top,0px)!important;height:calc(70px + env(safe-area-inset-top,0px))!important;}
   .nav-tabs{bottom:calc(14px + env(safe-area-inset-bottom,0px))!important;}
   .step-acts{bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;}
-  .mkass-push-floating{bottom:calc(98px + env(safe-area-inset-bottom,0px))!important;}
+  .mkass-push-floating{bottom:calc(72px + env(safe-area-inset-bottom,0px))!important;}
 }
 .mkass-install-ready .mk-download{border-color:rgba(40,211,107,.45)!important;box-shadow:0 14px 36px rgba(40,211,107,.13)!important;}
 .mkass-skeleton{position:relative;overflow:hidden;background:linear-gradient(90deg,rgba(127,127,127,.10),rgba(127,127,127,.18),rgba(127,127,127,.10));background-size:220% 100%;animation:mkassSkeleton 1.15s ease-in-out infinite;border-radius:18px;min-height:18px;}
@@ -7153,12 +7153,12 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
 .mkass-push-dot{width:7px;height:7px;border-radius:50%;background:var(--gray2);box-shadow:0 0 0 0 rgba(200,255,0,.28)}
 .mkass-push-btn.is-on .mkass-push-dot{background:var(--ink);animation:mkassPushPulse 1.7s infinite}
 @keyframes mkassPushPulse{0%{box-shadow:0 0 0 0 rgba(200,255,0,.35)}70%{box-shadow:0 0 0 8px rgba(200,255,0,0)}100%{box-shadow:0 0 0 0 rgba(200,255,0,0)}}
-.mkass-notification-stack{position:fixed;right:18px;bottom:86px;z-index:200000;display:grid;gap:10px;width:min(380px,calc(100vw - 32px));pointer-events:none}
+.mkass-notification-stack{position:fixed;right:18px;bottom:104px;z-index:200000;display:grid;gap:10px;width:min(380px,calc(100vw - 32px));pointer-events:none}
 .mkass-notification-card{background:var(--ink2);border:1px solid var(--border2);border-left:4px solid var(--lime);border-radius:var(--r);box-shadow:0 18px 60px rgba(0,0,0,.38);padding:13px 14px;color:var(--white);font-family:'Plus Jakarta Sans','Plus Jakarta Sans',sans-serif;transform:translateY(16px);opacity:0;animation:mkassNotifyIn .22s ease forwards}
 @keyframes mkassNotifyIn{to{transform:translateY(0);opacity:1}}
 .mkass-notification-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}.mkass-notification-title{display:flex;align-items:center;gap:8px;font-family:'Plus Jakarta Sans','Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:800;letter-spacing:-.04em;color:var(--white)}.mkass-notification-mark{width:26px;height:26px;border-radius:7px;background:var(--lime);display:flex;align-items:center;justify-content:center;flex:0 0 auto}.mkass-notification-mark svg{width:16px;height:16px}.mkass-notification-time{font-family:'Plus Jakarta Sans',sans-serif;font-size:10px;font-weight:700;color:var(--gray);white-space:nowrap}.mkass-notification-body{padding-left:34px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;line-height:1.45;color:var(--gray)}.mkass-notification-body strong{color:var(--white);font-family:'Plus Jakarta Sans','Plus Jakarta Sans',sans-serif;font-weight:800;letter-spacing:-.03em}
-.mkass-push-floating{position:fixed;right:16px;bottom:96px;z-index:99990;background:var(--ink2);box-shadow:0 14px 45px rgba(0,0,0,.25)}
-@media(max-width:640px){.mkass-notification-stack{left:12px;right:12px;bottom:82px;width:auto}.mkass-push-btn{padding:7px 11px;font-size:11px}.mkass-push-floating{right:12px;bottom:86px}}
+.mkass-push-floating{position:fixed;right:16px;bottom:72px;z-index:99990;background:var(--ink2);box-shadow:0 14px 45px rgba(0,0,0,.25)}
+@media(max-width:640px){.mkass-notification-stack{left:12px;right:12px;bottom:104px;width:auto}.mkass-push-btn{padding:7px 10px;font-size:11px}.mkass-push-floating{right:12px;bottom:72px}}
 </style>
 <script id="mkass-browser-push-js">
 (function mkassBrowserPush(){
@@ -7215,8 +7215,8 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
       }
       await apiCall('POST', '/push/subscribe', { salonId:getSalonForPush(), subscription }, true);
       localStorage.setItem('mkass_push_enabled', 'true');
-      pushToast('Notifications activées');
-      window.mkassShowInAppNotification('Notifications activées', 'Vous recevrez les alertes réservation, walk-in et changements de statut.');
+      pushToast('Alertes activées');
+      window.mkassShowInAppNotification('Alertes activées', 'Vous recevrez les alertes de réservation, walk-in et changements de statut.');
       mkassInstallPushButton();
     } catch (err) {
       console.error('Mkass push error:', err);
@@ -7232,7 +7232,7 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
     btn.id = id; btn.type = 'button';
     btn.className = 'mkass-push-btn' + (floating ? ' mkass-push-floating' : '') + (isPushOn() ? ' is-on' : '');
     btn.onclick = function(){ window.mkassEnableBrowserPush(btn); };
-    btn.innerHTML = `<span class="mkass-push-dot"></span>${isPushOn() ? 'Notifications activées' : 'Activer notifications'}`;
+    btn.innerHTML = `<span class="mkass-push-dot"></span>${isPushOn() ? 'Alertes activées' : 'Activer notifications'}`;
     return btn;
   }
 
@@ -7256,7 +7256,7 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
     ['mkass-push-btn','mkass-staff-push-btn','mkass-push-floating-btn'].forEach(id=>{
       const b=document.getElementById(id); if(!b) return;
       b.className = b.className.replace(/\bis-on\b/g,'').trim() + (isPushOn() ? ' is-on' : '');
-      b.innerHTML = `<span class="mkass-push-dot"></span>${isPushOn() ? 'Notifications activées' : 'Activer notifications'}`;
+      b.innerHTML = `<span class="mkass-push-dot"></span>${isPushOn() ? 'Alertes activées' : 'Activer notifications'}`;
     });
   };
 

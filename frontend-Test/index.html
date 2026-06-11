@@ -2223,27 +2223,26 @@ html.dark .staff-card,html.dark .rules-card,html.dark .pro-panel{box-shadow:none
         <div class="price-card active" id="plan-starter" onclick="selectSignupPlan('starter')">
           <div class="plan-badge">Pour commencer</div>
           <div class="plan-name">Starter</div>
-          <div class="plan-price">19 <span>TND / mois</span></div>
-          <p class="plan-desc">Une présence simple pour recevoir des réservations en ligne.</p>
+          <div class="plan-price">29 <span>TND / mois</span></div>
+          <p class="plan-desc">Page salon, services et prix, réservations en ligne, “Mes réservations”, gestion des rendez-vous, caisse simple, avis clients et interface mobile.</p>
           <ul class="plan-list">
-            <li>Page salon publique</li>
-            <li>Réservations en ligne</li>
-            <li>Avis clients vérifiés</li>
-            <li>Créneaux disponibles basiques</li>
+            <li>Page salon avec adresse, photos, services et prix</li>
+            <li>Réservations en ligne et suivi “Mes réservations”</li>
+            <li>Gestion des rendez-vous et caisse simple</li>
+            <li>Avis clients et interface mobile</li>
           </ul>
         </div>
 
         <div class="price-card" id="plan-pro" onclick="selectSignupPlan('pro')">
           <div class="plan-badge">Le plus choisi</div>
           <div class="plan-name">Pro</div>
-          <div class="plan-price">49 <span>TND / mois</span></div>
-          <p class="plan-desc">Tout pour gérer le salon, la caisse et les rendez-vous.</p>
+          <div class="plan-price">59 <span>TND / mois</span></div>
+          <p class="plan-desc">Tout Starter + personnel, comptes employés, planning intelligent, notifications navigateur, règles avancées, no-show, finance, charges et commissions.</p>
           <ul class="plan-list">
             <li>Tout Starter inclus</li>
-            <li>Dashboard gérant complet</li>
-            <li>Caisse / Walk-in</li>
-            <li>Balance et historique recettes</li>
-            <li>Services et tarifs modifiables</li>
+            <li>Personnel, comptes employés et planning intelligent</li>
+            <li>Notifications navigateur et règles avancées</li>
+            <li>No-show, finance, charges et commissions</li>
           </ul>
         </div>
 
@@ -2281,7 +2280,7 @@ html.dark .staff-card,html.dark .rules-card,html.dark .pro-panel{box-shadow:none
 
         <div class="pay-card">
           <h3>Paiement</h3>
-          <div class="total-display"><span>Formule choisie</span><strong id="signup-plan-summary">Starter — 19 TND/mois</strong></div>
+          <div class="total-display"><span>Formule choisie</span><strong id="signup-plan-summary">Starter — 29 TND/mois</strong></div>
           <div class="pay-methods">
             <div class="pay-method active" id="pay-flouci" onclick="selectSignupPayment('flouci')"><div>Flouci<small>Paiement mobile sécurisé</small></div><span class="pay-dot"></span></div>
             <div class="pay-method" id="pay-d17" onclick="selectSignupPayment('d17')"><div>D17<small>Paiement via La Poste Tunisienne</small></div><span class="pay-dot"></span></div>
@@ -2730,7 +2729,7 @@ html.dark .staff-card,html.dark .rules-card,html.dark .pro-panel{box-shadow:none
         <h3>Tarifs Mkass</h3><p>Les offres Mkass sont pensées pour rester accessibles aux salons tunisiens tout en couvrant les besoins essentiels de réservation, gestion et suivi.</p>
         <div class="mk-legal-grid">
           <div class="mk-legal-box"><b>Starter — 29 TND / mois</b><p>Page salon, services et prix, réservations en ligne, “Mes réservations”, gestion des rendez-vous, caisse simple, avis clients et interface mobile.</p></div>
-          <div class="mk-legal-box"><b>Pro — 79 TND / mois</b><p>Tout Starter + personnel, comptes employés, planning intelligent, notifications navigateur, règles avancées, no-show, finance, charges et commissions.</p></div>
+          <div class="mk-legal-box"><b>Pro — 59 TND / mois</b><p>Tout Starter + personnel, comptes employés, planning intelligent, notifications navigateur, règles avancées, no-show, finance, charges et commissions.</p></div>
           <div class="mk-legal-box"><b>Offre de lancement</b><p>Des conditions de lancement peuvent être proposées aux premiers salons partenaires. Contactez Mkass pour connaître l’offre disponible.</p></div>
           <div class="mk-legal-box"><b>Paiement</b><p>Les prix sont affichés en TND. Les paiements en ligne, lorsqu’ils sont activés, sont traités via un prestataire de paiement autorisé.</p></div>
         </div>
@@ -4100,8 +4099,8 @@ function renderAdminTable(){
 let signupPlan = 'starter';
 let signupPayment = 'flouci';
 const SIGNUP_PLANS = {
-  starter: { label: 'Starter', price: 19 },
-  pro: { label: 'Pro', price: 49 }
+  starter: { label: 'Starter', price: 29 },
+  pro: { label: 'Pro', price: 59 }
 };
 
 function selectSignupPlan(plan){

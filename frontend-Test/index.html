@@ -6242,6 +6242,9 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
       const data=await apiCall('POST','/auth/login',{username:user,password:pw});
       authToken=data.token; authRole=data.role; authSalonId=data.salonId || data.salon_id || null; authSalonName=data.salonName || data.salon_name || user;
       localStorage.setItem('mkass_auth_token', authToken || ''); localStorage.setItem('mkass_auth_role', authRole || ''); localStorage.setItem('mkass_salon_id', authSalonId || ''); localStorage.setItem('mkass_salon_name', authSalonName || '');
+      localStorage.setItem('mkass_staff_id', data.staffId || data.staff_id || '');
+      localStorage.setItem('mkass_staff_name', data.staffName || data.staff_name || '');
+      localStorage.setItem('mkass_auth_expires_at', String(Date.now() + 30 * 24 * 60 * 60 * 1000));
       rememberSubscription(data);
       if(handleSubscriptionIfBlocked(data)){ document.getElementById('dash-pw').value=''; return; }
       isAdmin = data.role === 'admin'; loggedSalonId = isAdmin ? '__admin__' : authSalonId;
@@ -7160,6 +7163,116 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
 .mkass-push-floating{position:fixed;right:16px;bottom:72px;z-index:99990;background:var(--ink2);box-shadow:0 14px 45px rgba(0,0,0,.25)}
 @media(max-width:640px){.mkass-notification-stack{left:12px;right:12px;bottom:104px;width:auto}.mkass-push-btn{padding:7px 10px;font-size:11px}.mkass-push-floating{right:12px;bottom:72px}}
 </style>
+
+<script id="mkass-auto-login-session-js">
+(function(){
+  const SESSION_DAYS = 30;
+  const EXPIRES_KEY = 'mkass_auth_expires_at';
+  const AUTH_KEYS = [
+    'mkass_auth_token','mkass_auth_role','mkass_salon_id','mkass_salon_name',
+    'mkass_staff_id','mkass_staff_name','mkass_subscription_status','mkass_salon_plan',
+    EXPIRES_KEY
+  ];
+
+  function now(){ return Date.now(); }
+  function freshExpiry(){ return now() + SESSION_DAYS * 24 * 60 * 60 * 1000; }
+  function safeToast(msg){ try { if(typeof toast === 'function') toast(msg); } catch(e){} }
+
+  window.mkassClearSavedSession = function mkassClearSavedSession(){
+    try { AUTH_KEYS.forEach(k => localStorage.removeItem(k)); localStorage.removeItem('mkass_push_enabled'); } catch(e){}
+  };
+
+  function hasValidSavedSession(){
+    const token = localStorage.getItem('mkass_auth_token');
+    const role = localStorage.getItem('mkass_auth_role');
+    const salonId = localStorage.getItem('mkass_salon_id');
+    if(!token || !role) return false;
+    if(role !== 'admin' && !salonId) return false;
+    let expiresAt = Number(localStorage.getItem(EXPIRES_KEY) || 0);
+    // Older Mkass sessions had no expiry; upgrade them once to the safer 30-day session.
+    if(!expiresAt){ expiresAt = freshExpiry(); localStorage.setItem(EXPIRES_KEY, String(expiresAt)); }
+    if(expiresAt <= now()){ window.mkassClearSavedSession(); return false; }
+    return true;
+  }
+
+  window.mkassRefreshSavedSession = function mkassRefreshSavedSession(){
+    try{
+      if(localStorage.getItem('mkass_auth_token') && localStorage.getItem('mkass_auth_role')){
+        localStorage.setItem(EXPIRES_KEY, String(freshExpiry()));
+      }
+    }catch(e){}
+  };
+
+  window.mkassRestoreSavedSession = async function mkassRestoreSavedSession(){
+    if(!hasValidSavedSession()) return false;
+    try{
+      authToken = localStorage.getItem('mkass_auth_token') || null;
+      authRole = localStorage.getItem('mkass_auth_role') || null;
+      authSalonId = localStorage.getItem('mkass_salon_id') || null;
+      authSalonName = localStorage.getItem('mkass_salon_name') || null;
+      isAdmin = authRole === 'admin';
+      loggedSalonId = isAdmin ? '__admin__' : authSalonId;
+      window.authToken = authToken;
+      window.authRole = authRole;
+      window.authSalonId = authSalonId;
+      window.authSalonName = authSalonName;
+      window.isAdmin = isAdmin;
+      window.loggedSalonId = loggedSalonId;
+
+      if(authRole === 'staff'){
+        window.mkassStaffId = localStorage.getItem('mkass_staff_id') || null;
+        window.mkassStaffName = localStorage.getItem('mkass_staff_name') || authSalonName || 'Personnel';
+        if(typeof showView === 'function') showView('dashboard');
+        if(typeof showStaffLiteDashboard === 'function') await showStaffLiteDashboard();
+      } else {
+        if(isAdmin && typeof loadAdminData === 'function') await loadAdminData();
+        else if(typeof loadOwnerAppointments === 'function') await loadOwnerAppointments();
+        if(typeof showView === 'function') showView('dashboard');
+        if(typeof showDash === 'function') showDash();
+      }
+
+      window.mkassRefreshSavedSession();
+      setTimeout(function(){ try{ if(typeof mkassInstallPushButton === 'function') mkassInstallPushButton(); }catch(e){} }, 250);
+      return true;
+    }catch(err){
+      console.warn('Mkass auto-login skipped:', err);
+      return false;
+    }
+  };
+
+  const previousTryLogin = window.tryLogin;
+  if(typeof previousTryLogin === 'function' && !previousTryLogin.__mkassAutoLoginWrapped){
+    const wrappedTryLogin = async function(){
+      const result = await previousTryLogin.apply(this, arguments);
+      try{
+        if(authToken && authRole){
+          localStorage.setItem(EXPIRES_KEY, String(freshExpiry()));
+          if(window.mkassStaffId) localStorage.setItem('mkass_staff_id', window.mkassStaffId || '');
+          if(window.mkassStaffName) localStorage.setItem('mkass_staff_name', window.mkassStaffName || '');
+        }
+      }catch(e){}
+      return result;
+    };
+    wrappedTryLogin.__mkassAutoLoginWrapped = true;
+    window.tryLogin = wrappedTryLogin;
+  }
+
+  const previousLogout = window.logout;
+  window.logout = function(){
+    window.mkassClearSavedSession();
+    try { authToken=null; authRole=null; authSalonId=null; authSalonName=null; } catch(e){}
+    try { window.authToken=null; window.authRole=null; window.authSalonId=null; window.authSalonName=null; } catch(e){}
+    if(typeof previousLogout === 'function') return previousLogout.apply(this, arguments);
+    try { location.reload(); } catch(e){}
+  };
+
+  window.addEventListener('load', function(){
+    // Wait for public salon data to load so showDash() can render the correct salon name and dashboard.
+    setTimeout(function(){ window.mkassRestoreSavedSession(); }, 1100);
+  });
+})();
+</script>
+
 <script id="mkass-browser-push-js">
 (function mkassBrowserPush(){
   const SCISSORS_SVG = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="6" cy="6" r="3" stroke="#0A0A0A" stroke-width="2"/><circle cx="6" cy="18" r="3" stroke="#0A0A0A" stroke-width="2"/><path d="M8.5 8.5L20 20" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round"/><path d="M8.5 15.5L20 4" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round"/></svg>';

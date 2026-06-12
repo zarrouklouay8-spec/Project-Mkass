@@ -2056,6 +2056,156 @@ img,svg{user-select:none;-webkit-user-drag:none;}
   }
 }
 </style>
+
+
+<style id="mkass-polished-custom-selects">
+/* MKASS POLISHED LISTS / DROPDOWNS
+   Replaces ugly native mobile select popups with a clean Mkass custom menu.
+   Original <select> elements stay in the DOM, so existing backend/API logic still reads their values. */
+select.mkass-select-native-hidden{
+  display:none !important;
+}
+.mkass-select-shell{
+  position:relative;
+  width:100%;
+  min-width:0;
+  font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif !important;
+  z-index:1;
+}
+.mkass-select-trigger{
+  width:100%;
+  min-height:50px;
+  border:1.5px solid var(--mk-border, rgba(255,255,255,.14));
+  border-radius:16px;
+  background:var(--mk-panel-2, #111512);
+  color:var(--mk-text, #f6f6f1);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:0 14px;
+  cursor:pointer;
+  text-align:left;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+  transition:border-color .15s ease, box-shadow .15s ease, background .15s ease, transform .08s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.mkass-select-trigger:active{transform:scale(.992)}
+.mkass-select-shell.open .mkass-select-trigger,
+.mkass-select-trigger:focus-visible{
+  outline:none;
+  border-color:var(--mk-green,#1ba640);
+  box-shadow:0 0 0 4px rgba(27,166,64,.14), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.mkass-select-value{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:14px;
+  font-weight:800;
+  letter-spacing:-.015em;
+}
+.mkass-select-chevron{
+  width:30px;
+  height:30px;
+  border-radius:999px;
+  background:rgba(27,166,64,.12);
+  flex:0 0 30px;
+  display:grid;
+  place-items:center;
+  transition:transform .18s ease, background .15s ease;
+}
+.mkass-select-chevron::before{
+  content:"";
+  width:8px;
+  height:8px;
+  border-right:2px solid var(--mk-green,#1ba640);
+  border-bottom:2px solid var(--mk-green,#1ba640);
+  transform:rotate(45deg) translateY(-2px);
+}
+.mkass-select-shell.open .mkass-select-chevron{transform:rotate(180deg);background:rgba(27,166,64,.18)}
+.mkass-select-menu{
+  position:absolute;
+  left:0;
+  right:0;
+  top:calc(100% + 8px);
+  max-height:270px;
+  overflow:auto;
+  background:var(--mk-panel,#171b18);
+  color:var(--mk-text,#f6f6f1);
+  border:1px solid var(--mk-border,rgba(255,255,255,.14));
+  border-radius:18px;
+  padding:6px;
+  box-shadow:0 22px 60px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.04);
+  display:none;
+  z-index:100200;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+}
+.mkass-select-shell.open .mkass-select-menu{display:block;animation:mkassSelectIn .12s ease-out}
+@keyframes mkassSelectIn{from{opacity:0;transform:translateY(-4px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+.mkass-select-menu::-webkit-scrollbar{width:5px}
+.mkass-select-menu::-webkit-scrollbar-thumb{background:rgba(27,166,64,.35);border-radius:999px}
+.mkass-select-option{
+  width:100%;
+  min-height:44px;
+  border:0;
+  background:transparent;
+  color:var(--mk-text,#f6f6f1);
+  border-radius:13px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 12px;
+  cursor:pointer;
+  font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif !important;
+  font-size:14px;
+  font-weight:750;
+  text-align:left;
+  line-height:1.2;
+}
+.mkass-select-option:hover,
+.mkass-select-option:focus-visible{
+  background:rgba(27,166,64,.10);
+  outline:none;
+}
+.mkass-select-option.selected{
+  color:var(--mk-green,#1ba640);
+  background:rgba(27,166,64,.14);
+  font-weight:900;
+}
+.mkass-select-option.selected::after{
+  content:"✓";
+  width:22px;
+  height:22px;
+  border-radius:999px;
+  background:rgba(27,166,64,.16);
+  color:var(--mk-green,#1ba640);
+  display:grid;
+  place-items:center;
+  font-size:13px;
+  flex:0 0 22px;
+}
+.mkass-select-shell.disabled{opacity:.58;pointer-events:none}
+
+/* Light mode */
+html:not(.dark) .mkass-select-trigger{background:#fff;color:#101010;border-color:#dedbd2;box-shadow:0 8px 22px rgba(16,16,16,.04)}
+html:not(.dark) .mkass-select-menu{background:#fff;color:#101010;border-color:#dedbd2;box-shadow:0 24px 60px rgba(16,16,16,.16)}
+html:not(.dark) .mkass-select-option{color:#101010}
+html:not(.dark) .mkass-select-option.selected{color:var(--mk-green,#1ba640);background:rgba(27,166,64,.10)}
+
+/* Keep custom select above mobile bottom nav and inside cards */
+@media(max-width:900px){
+  .mkass-select-trigger{min-height:52px;border-radius:17px;padding:0 13px;}
+  .mkass-select-menu{max-height:245px;border-radius:18px;}
+  .mkass-select-option{min-height:46px;font-size:15px;border-radius:14px;}
+  .finance-card,.pay-card,.signup-card,.settings-form,.new-salon-form,.add-svc-form,.walkin-panel,.staff-card,.rules-card{overflow:visible !important;}
+  .t-card{overflow-x:auto !important;overflow-y:visible !important;}
+}
+</style>
+
 </head>
 <body>
 
@@ -7631,6 +7781,126 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
       navigator.serviceWorker.register('/sw.js').catch(function(err){ console.warn('Mkass service worker registration skipped:', err); });
     });
   }
+})();
+</script>
+
+
+
+<script id="mkass-polished-custom-selects-js">
+(function(){
+  function escHtml(v){return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+
+  function closeAll(except){
+    document.querySelectorAll('.mkass-select-shell.open').forEach(shell=>{
+      if(shell !== except) shell.classList.remove('open');
+    });
+  }
+
+  function selectedText(select){
+    const opt = select.options[select.selectedIndex] || select.options[0];
+    return opt ? opt.textContent.trim() : '';
+  }
+
+  function syncShell(select){
+    const shell = select._mkassSelectShell;
+    if(!shell) return;
+    shell.classList.toggle('disabled', !!select.disabled);
+    const value = shell.querySelector('.mkass-select-value');
+    if(value) value.textContent = selectedText(select) || 'Choisir';
+    const menu = shell.querySelector('.mkass-select-menu');
+    if(!menu) return;
+    menu.innerHTML = Array.from(select.options).map((opt, idx)=>{
+      const selected = idx === select.selectedIndex || opt.value === select.value;
+      return `<button type="button" class="mkass-select-option ${selected ? 'selected' : ''}" data-value="${escHtml(opt.value)}" data-index="${idx}">${escHtml(opt.textContent.trim())}</button>`;
+    }).join('') || '<div class="mkass-select-option" style="pointer-events:none;opacity:.65">Aucune option</div>';
+  }
+
+  function enhanceSelect(select){
+    if(!select || select.dataset.mkassSelectEnhanced === '1') return;
+    if(select.closest('.mkass-select-shell')) return;
+
+    select.dataset.mkassSelectEnhanced = '1';
+    select.classList.add('mkass-select-native-hidden');
+
+    const shell = document.createElement('div');
+    shell.className = 'mkass-select-shell';
+    shell.innerHTML = `<button type="button" class="mkass-select-trigger" aria-haspopup="listbox" aria-expanded="false"><span class="mkass-select-value"></span><span class="mkass-select-chevron" aria-hidden="true"></span></button><div class="mkass-select-menu" role="listbox"></div>`;
+    select.insertAdjacentElement('afterend', shell);
+    select._mkassSelectShell = shell;
+    shell._mkassNativeSelect = select;
+
+    const trigger = shell.querySelector('.mkass-select-trigger');
+    const menu = shell.querySelector('.mkass-select-menu');
+
+    trigger.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      syncShell(select);
+      const willOpen = !shell.classList.contains('open');
+      closeAll(shell);
+      shell.classList.toggle('open', willOpen);
+      trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+
+    menu.addEventListener('click', function(e){
+      const btn = e.target.closest('.mkass-select-option');
+      if(!btn || btn.style.pointerEvents === 'none') return;
+      e.preventDefault();
+      e.stopPropagation();
+      const idx = Number(btn.dataset.index);
+      if(Number.isInteger(idx) && select.options[idx]){
+        select.selectedIndex = idx;
+      }else{
+        select.value = btn.dataset.value;
+      }
+      syncShell(select);
+      shell.classList.remove('open');
+      trigger.setAttribute('aria-expanded','false');
+      select.dispatchEvent(new Event('input', {bubbles:true}));
+      select.dispatchEvent(new Event('change', {bubbles:true}));
+    });
+
+    select.addEventListener('change', ()=>syncShell(select));
+    select.addEventListener('input', ()=>syncShell(select));
+
+    const mo = new MutationObserver(()=>syncShell(select));
+    mo.observe(select, {childList:true, subtree:true, attributes:true, attributeFilter:['disabled','value','selected']});
+    select._mkassSelectObserver = mo;
+
+    syncShell(select);
+  }
+
+  function enhanceAllSelects(){
+    document.querySelectorAll('select').forEach(enhanceSelect);
+  }
+
+  document.addEventListener('click', function(e){
+    if(!e.target.closest('.mkass-select-shell')) closeAll();
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') closeAll();
+  });
+
+  window.refreshMkassSelects = function(){
+    enhanceAllSelects();
+    document.querySelectorAll('select').forEach(syncShell);
+  };
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', enhanceAllSelects);
+  }else{
+    enhanceAllSelects();
+  }
+
+  // Some Mkass panels build selects dynamically after login/render.
+  const bodyObserver = new MutationObserver(()=>{
+    clearTimeout(window.__mkassSelectRefreshTimer);
+    window.__mkassSelectRefreshTimer = setTimeout(enhanceAllSelects, 60);
+  });
+  bodyObserver.observe(document.documentElement, {childList:true, subtree:true});
+
+  // Keep labels synced when existing code changes select.value programmatically.
+  setInterval(()=>document.querySelectorAll('select').forEach(syncShell), 900);
 })();
 </script>
 

@@ -2572,6 +2572,7 @@ img,svg{user-select:none;-webkit-user-drag:none;}
             </div>
             <div class="f-row"><label class="f-label">Nom du salon</label><input class="f-input" id="sett-name" oninput="saveSettings()"></div>
             <div class="f-row"><label class="f-label">Adresse</label><input class="f-input" id="sett-addr" oninput="saveSettings()"></div>
+            <div class="f-row"><label class="f-label">Lien Google Maps</label><input class="f-input" id="sett-map-url" placeholder="Collez le lien Google Maps complet du salon" oninput="saveSettings()"><div style="margin-top:6px;font-size:12px;color:var(--mk-soft-text,var(--gray));line-height:1.45">Utilisez idéalement un lien Google Maps complet contenant @latitude,longitude ou !3d...!4d...</div></div>
             <div class="f-row"><label class="f-label">Statut</label>
               <select class="f-input" id="sett-status" onchange="saveSettings()">
                 <option value="open">Ouvert</option>
@@ -4082,6 +4083,8 @@ function loadSettings(){
   const s=SALONS.find(x=>x.id===loggedSalonId);if(!s)return;
   document.getElementById('sett-name').value=s.name;
   document.getElementById('sett-addr').value=s.address;
+  const mapInput = document.getElementById('sett-map-url');
+  if(mapInput) mapInput.value = s.mapUrl || s.map_url || '';
   document.getElementById('sett-status').value=s.status;
   if(s.coverImg){
     const cu=document.getElementById('cover-upload');
@@ -4096,6 +4099,18 @@ function saveSettings(){
   const s=SALONS.find(x=>x.id===loggedSalonId);if(!s)return;
   s.name=document.getElementById('sett-name').value;
   s.address=document.getElementById('sett-addr').value;
+  const mapInput = document.getElementById('sett-map-url');
+  if(mapInput){
+    s.mapUrl = mapInput.value.trim();
+    s.map_url = s.mapUrl;
+    const coords = mkassExtractCoordsFromMapUrl(s.mapUrl);
+    if(coords){
+      s.lat = coords.lat;
+      s.lng = coords.lng;
+      s.latitude = coords.lat;
+      s.longitude = coords.lng;
+    }
+  }
   s.status=document.getElementById('sett-status').value;
 }
 function saveSettingsBtn(){
@@ -4681,10 +4696,15 @@ deleteSvc = async function deleteSvcApi(id) {
 saveSettingsBtn = async function saveSettingsBtnApi() {
   const s = SALONS.find((x) => x.id === loggedSalonId);
   if (!s) return;
+  const mapUrl = document.getElementById("sett-map-url")?.value.trim() || "";
+  const coords = mkassExtractCoordsFromMapUrl(mapUrl);
   const patch = {
     name: document.getElementById("sett-name").value,
     address: document.getElementById("sett-addr").value,
     status: document.getElementById("sett-status").value,
+    map_url: mapUrl,
+    mapUrl: mapUrl,
+    ...(coords ? { lat: coords.lat, lng: coords.lng, latitude: coords.lat, longitude: coords.lng } : {}),
     coverImg: s.coverImg || null,
   };
   try {

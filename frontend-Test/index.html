@@ -4696,6 +4696,7 @@ deleteSvc = async function deleteSvcApi(id) {
 saveSettingsBtn = async function saveSettingsBtnApi() {
   const s = SALONS.find((x) => x.id === loggedSalonId);
   if (!s) return;
+
   const mapUrl = document.getElementById("sett-map-url")?.value.trim() || "";
   const coords = mkassExtractCoordsFromMapUrl(mapUrl);
   const patch = {
@@ -4707,11 +4708,22 @@ saveSettingsBtn = async function saveSettingsBtnApi() {
     ...(coords ? { lat: coords.lat, lng: coords.lng, latitude: coords.lat, longitude: coords.lng } : {}),
     coverImg: s.coverImg || null,
   };
+
   try {
     const payload = await apiCall("PUT", `/salons/${loggedSalonId}`, patch, true);
-    await saveSalonHours();
-    Object.assign(s, normalizeApiSalon(unwrapApi(payload, "salon") || { ...s, ...patch }));
-    document.getElementById("d-greeting").textContent = "Bonjour, " + s.name + " 👋";
+    const updatedSalon = normalizeApiSalon(unwrapApi(payload, "salon") || { ...s, ...patch });
+    Object.assign(s, updatedSalon);
+
+    // Hours are saved separately. If that endpoint fails, do not show a false
+    // server error for the salon settings/map URL because the main save worked.
+    try {
+      await saveSalonHours();
+    } catch (hoursErr) {
+      console.warn("Horaires non sauvegardés avec les paramètres:", hoursErr);
+    }
+
+    const greeting = document.getElementById("d-greeting");
+    if (greeting) greeting.textContent = "Bonjour, " + s.name + " 👋";
     toast("✓ Paramètres sauvegardés");
   } catch (err) {
     toast(err.message || "Erreur paramètres");

@@ -2883,13 +2883,13 @@ img,svg{user-select:none;-webkit-user-drag:none;}
 // DATABASE
 // ═══════════════════════════
 let SALONS = [
-  {id:'salon-nour',name:'Salon Nour',icon:'💇',type:'salon',address:'Rue de Marseille, Lafayette, Tunis',dist:'0.3 km',rating:4.8,reviewCount:124,status:'open',tags:['Coloration','Kératine','Mariée'],childCut:true,password:'1234',color:'#a78bfa',coverImg:null,
+  {id:'salon-nour',name:'Salon Nour',icon:'💇',type:'salon',address:'Rue de Marseille, Lafayette, Tunis',dist:'',rating:4.8,reviewCount:124,status:'open',tags:['Coloration','Kératine','Mariée'],childCut:true,password:'1234',color:'#a78bfa',coverImg:null,
    reviews:[{name:'Sarra M.',date:'Il y a 2 jours',stars:5,text:'Service impeccable ! Ma couleur est exactement ce que je voulais.'},{name:'Amira K.',date:'Il y a 1 semaine',stars:5,text:'Très professionnel et accueillant. Je recommande vivement !'},{name:'Leila B.',date:'Il y a 2 semaines',stars:4,text:'Brushing parfait, réservation en ligne super pratique.'}]},
-  {id:'barber-one',name:'Barber One',icon:'💈',type:'barbershop',address:'Avenue Habib Bourguiba, Centre-Ville',dist:'0.7 km',rating:4.9,reviewCount:89,status:'open',tags:['Barbe','Rasage','Coupe moderne'],childCut:true,password:'5678',color:'#34d399',coverImg:null,
+  {id:'barber-one',name:'Barber One',icon:'💈',type:'barbershop',address:'Avenue Habib Bourguiba, Centre-Ville',dist:'',rating:4.9,reviewCount:89,status:'open',tags:['Barbe','Rasage','Coupe moderne'],childCut:true,password:'5678',color:'#34d399',coverImg:null,
    reviews:[{name:'Khalil T.',date:'Hier',stars:5,text:'Le meilleur barbershop de Tunis. Ambiance top, coupe parfaite.'},{name:'Mohamed A.',date:'Il y a 3 jours',stars:5,text:'Yassine est un vrai pro. Rapport qualité/prix excellent.'}]},
-  {id:'studio-bella',name:'Studio Bella',icon:'🌸',type:'mixte',address:'Rue du Lac, Les Berges du Lac',dist:'2.1 km',rating:4.6,reviewCount:67,status:'busy',tags:['Soin','Extensions','Nail art'],childCut:false,password:'0000',color:'#f472b6',coverImg:null,
+  {id:'studio-bella',name:'Studio Bella',icon:'🌸',type:'mixte',address:'Rue du Lac, Les Berges du Lac',dist:'',rating:4.6,reviewCount:67,status:'busy',tags:['Soin','Extensions','Nail art'],childCut:false,password:'0000',color:'#f472b6',coverImg:null,
    reviews:[{name:'Ines H.',date:'Il y a 4 jours',stars:5,text:'Extensions superbes, résultat naturel !'},{name:'Farah N.',date:'Il y a 2 semaines',stars:4,text:'Nail art superbe, un peu cher mais qualité au rendez-vous.'}]},
-  {id:'coiff-kids',name:'Coiff & Kids',icon:'🧒',type:'enfant',address:'Centre Commercial, La Marsa',dist:'5.4 km',rating:4.7,reviewCount:203,status:'open',tags:['Enfants','Bébés','Fun'],childCut:true,password:'0000',color:'#fbbf24',coverImg:null,
+  {id:'coiff-kids',name:'Coiff & Kids',icon:'🧒',type:'enfant',address:'Centre Commercial, La Marsa',dist:'',rating:4.7,reviewCount:203,status:'open',tags:['Enfants','Bébés','Fun'],childCut:true,password:'0000',color:'#fbbf24',coverImg:null,
    reviews:[{name:'Mama de Yassin',date:'Il y a 1 jour',stars:5,text:'Mon fils adorait pleurer — ici il rigole ! Équipe magique.'},{name:'Rim C.',date:'Il y a 3 jours',stars:5,text:'Spécialiste enfants, résultat propre et rapide !'}]},
 ];
 
@@ -3181,25 +3181,104 @@ function updateFeaturedSalon(list = SALONS){
   if (btn) btn.setAttribute('onclick', `bookSalon('${salon.id}')`);
 }
 
+let mkassUserLocation = null;
+let mkassLocationBusy = false;
+
+function hasRealSalonLocation(s){
+  const fromMap = parseLatLngFromGoogleMapsUrl(s.mapUrl || s.map_url || '');
+  const lat = toNumberOrNull(s.lat ?? fromMap?.lat);
+  const lng = toNumberOrNull(s.lng ?? fromMap?.lng);
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+}
+
+function distanceKmBetween(a, b){
+  const R = 6371;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const lat1 = a.lat * Math.PI / 180;
+  const lat2 = b.lat * Math.PI / 180;
+  const h = Math.sin(dLat/2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function formatDistanceKm(km){
+  if(!Number.isFinite(km)) return '';
+  if(km < 1) return `${Math.max(1, Math.round(km * 1000))} m`;
+  return `${km.toFixed(km < 10 ? 1 : 0)} km`;
+}
+
+function getSalonDistanceKm(s){
+  if(!mkassUserLocation) return null;
+  const loc = hasRealSalonLocation(s);
+  if(!loc) return null;
+  return distanceKmBetween(mkassUserLocation, loc);
+}
+
+async function requestMkassUserLocation(){
+  if(mkassUserLocation) return mkassUserLocation;
+  if(!navigator.geolocation){
+    toast('La localisation n’est pas disponible sur ce navigateur');
+    return null;
+  }
+  if(mkassLocationBusy) return null;
+  mkassLocationBusy = true;
+  toast('Autorisez la localisation pour afficher les salons proches');
+  try{
+    const pos = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000
+      });
+    });
+    mkassUserLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    toast('Localisation activée');
+    return mkassUserLocation;
+  }catch(err){
+    toast('Localisation refusée ou indisponible');
+    return null;
+  }finally{
+    mkassLocationBusy = false;
+  }
+}
+
 function renderShops(){
   let q=(document.getElementById('search-inp')?.value || '').toLowerCase().trim();
   if(q === 'tous les soins' || q === 'tous les services' || q === 'all treatments') q = '';
   const loc=(document.getElementById('location-inp')?.value || '').toLowerCase().trim();
-  const shops=SALONS.filter(s=>{
+  let shops=SALONS.filter(s=>{
     const svcs=(SALON_SERVICES[s.id]||[]).map(v=>`${v.name} ${v.cat||''}`).join(' ').toLowerCase();
     const serviceMatch=!q||s.name.toLowerCase().includes(q)||s.address.toLowerCase().includes(q)||s.tags.some(t=>t.toLowerCase().includes(q))||svcs.includes(q);
     const locationMatch=!loc||loc==='tunis'||loc==='position actuelle'||loc==='current location'||s.address.toLowerCase().includes(loc)||s.name.toLowerCase().includes(loc);
     const chipMatch=chipFilt==='all'||chipFilt==='near'||(chipFilt==='top'&&Number(s.rating)>=4.7)||(chipFilt==='open'&&s.status==='open')||(chipFilt==='enfant'&&s.childCut)||s.type===chipFilt;
     return serviceMatch&&locationMatch&&chipMatch;
-  }).sort((a,b)=>{
-    const bookedDiff = getSalonReservationCount(b.id) - getSalonReservationCount(a.id);
-    if (bookedDiff !== 0) return bookedDiff;
-    return Number(b.rating || 0) - Number(a.rating || 0);
   });
+
+  if(chipFilt === 'near'){
+    shops = shops
+      .map(s => ({ ...s, _distanceKm: getSalonDistanceKm(s) }))
+      .filter(s => Number.isFinite(s._distanceKm))
+      .sort((a,b)=> a._distanceKm - b._distanceKm);
+  } else {
+    shops = shops.sort((a,b)=>{
+      const bookedDiff = getSalonReservationCount(b.id) - getSalonReservationCount(a.id);
+      if (bookedDiff !== 0) return bookedDiff;
+      return Number(b.rating || 0) - Number(a.rating || 0);
+    });
+  }
 
   updateFeaturedSalon(shops);
   document.getElementById('shop-count').textContent=shops.length+' salon'+(shops.length>1?'s':'')+' trouvé'+(shops.length>1?'s':'');
-  document.getElementById('shops-grid').innerHTML=shops.map(shopCard).join('');
+  const grid = document.getElementById('shops-grid');
+  if(chipFilt === 'near' && !mkassUserLocation){
+    grid.innerHTML = `<div class="booking-empty" style="grid-column:1/-1"><b>Activez la localisation</b><br>Appuyez sur “Près de moi” et autorisez la position pour afficher les distances réelles.</div>`;
+    return;
+  }
+  if(chipFilt === 'near' && !shops.length){
+    grid.innerHTML = `<div class="booking-empty" style="grid-column:1/-1"><b>Aucun salon géolocalisé</b><br>Ajoutez un lien Google Maps contenant les coordonnées du salon pour calculer la distance réelle.</div>`;
+    return;
+  }
+  grid.innerHTML=shops.map(shopCard).join('');
 }
 function getSalonReviewCount(s){
   const explicit = Number(s?.reviewCount ?? s?.review_count ?? s?.reviews_count);
@@ -3229,13 +3308,15 @@ function shopCard(s){
   const svcs=SALON_SERVICES[s.id]||[];
   const minP=svcs.length?Math.min(...svcs.map(v=>v.price)):0;
   const coverHtml=s.coverImg?`<img src="${s.coverImg}" alt="cover">`:'';
+  const realDistance = Number.isFinite(s._distanceKm) ? formatDistanceKm(s._distanceKm) : (mkassUserLocation ? formatDistanceKm(getSalonDistanceKm(s)) : '');
+  const distanceHtml = realDistance ? `<div class="cover-dist">📍 ${realDistance}</div>` : '';
   return`<div class="shop-card" onclick="openModal('${s.id}')">
     <div class="shop-cover" style="background:linear-gradient(135deg,${s.color}20,${s.color}08)">
       ${coverHtml}
       <div class="shop-cover-overlay"></div>
       <div class="shop-cover-placeholder">${s.icon}</div>
       <div class="cover-badge"><span class="badge ${bc}">${bt}</span></div>
-      <div class="cover-dist">📍 ${s.dist}</div>
+      ${distanceHtml}
     </div>
     <div class="shop-body">
       <div class="shop-row1">
@@ -3252,10 +3333,21 @@ function shopCard(s){
   </div>`;
 }
 function typeLabel(t){return{salon:'Salon femme',barbershop:'Barbershop',mixte:'Salon mixte',enfant:'Salon enfants'}[t]||t}
-function setChip(el,v){chipFilt=v;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderShops()}
-
-// MODAL
-async function openModal(id){
+async function setChip(el,v){
+  if(v === 'near'){
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    el.classList.add('active');
+    chipFilt = 'near';
+    await requestMkassUserLocation();
+    renderShops();
+    return;
+  }
+  chipFilt=v;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderShops();
+}
+function openModal(id){
   const s=SALONS.find(x=>x.id===id);
   const svcs=SALON_SERVICES[id]||[];
   modalPickedSvcs=[];
@@ -4178,6 +4270,7 @@ function submitSignup(){
   const plan = SIGNUP_PLANS[signupPlan];
   localStorage.setItem('mkass_signup_request', JSON.stringify({
     name, username, address, type, phone, mapUrl,
+    ...parseLatLngFromGoogleMapsUrl(mapUrl),
     plan: signupPlan,
     amount: plan.price,
     payment: signupPayment,
@@ -4263,6 +4356,35 @@ function slugifyName(name) {
     .replace(/^-+|-+$/g, "") || "salon";
 }
 
+
+function toNumberOrNull(value){
+  if(value === undefined || value === null || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseLatLngFromGoogleMapsUrl(url){
+  if(!url) return null;
+  const text = decodeURIComponent(String(url));
+  const patterns = [
+    /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
+    /[?&](?:q|query|ll|center)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    /[?&]destination=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/
+  ];
+  for(const pattern of patterns){
+    const match = text.match(pattern);
+    if(match){
+      const lat = Number(match[1]);
+      const lng = Number(match[2]);
+      if(Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180){
+        return { lat, lng };
+      }
+    }
+  }
+  return null;
+}
+
 function normalizeApiSalon(row) {
   const rawReviews = Array.isArray(row.reviews)
     ? row.reviews.filter(r => r && (r.id !== null || r.text || r.comment || r.stars || r.rating || r.author_name || r.client_name))
@@ -4296,6 +4418,8 @@ function normalizeApiSalon(row) {
     color: row.color || "#a78bfa",
     coverImg: row.coverImg || row.cover_img || row.cover_url || null,
     mapUrl: row.mapUrl || row.map_url || row.google_maps_url || "",
+    lat: toNumberOrNull(row.lat ?? row.latitude),
+    lng: toNumberOrNull(row.lng ?? row.longitude),
     plan: String(row.plan || row.subscription_plan || row.package || row.pack || "starter").toLowerCase(),
     reviews: rawReviews,
   };
@@ -4593,6 +4717,9 @@ saveSettingsBtn = async function saveSettingsBtnApi() {
     name: document.getElementById("sett-name").value,
     address: document.getElementById("sett-addr").value,
     status: document.getElementById("sett-status").value,
+    map_url: document.getElementById("sett-map-url")?.value?.trim?.() || s.mapUrl || s.map_url || null,
+    mapUrl: document.getElementById("sett-map-url")?.value?.trim?.() || s.mapUrl || s.map_url || null,
+    ...parseLatLngFromGoogleMapsUrl(document.getElementById("sett-map-url")?.value?.trim?.() || s.mapUrl || s.map_url || ''),
     coverImg: s.coverImg || null,
   };
   try {
@@ -4623,6 +4750,7 @@ addSalon = async function addSalonApi() {
       address: addr,
       map_url: mapUrl,
       mapUrl: mapUrl,
+      ...parseLatLngFromGoogleMapsUrl(mapUrl),
       icon,
       type,
       password: pw,

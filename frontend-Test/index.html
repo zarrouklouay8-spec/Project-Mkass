@@ -2984,6 +2984,10 @@ function showView(v){
   if(v==='signup' && typeof initSignup === 'function') initSignup();
 }
 
+// Make navigation callable from inline onclick handlers after PWA/mobile patches.
+// This prevents "showView is not defined" on header/mobile buttons.
+window.showView = showView;
+
 
 // ═══════════════════════════
 // SEARCH SERVICE + LOCATION MENUS

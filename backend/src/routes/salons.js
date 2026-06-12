@@ -15,6 +15,61 @@ function overlaps(startA, durationA, startB, durationB) {
   return startA < endB && startB < endA;
 }
 
+function parseLatLngFromGoogleMapsUrl(url) {
+  if (!url) return null;
+  const text = decodeURIComponent(String(url));
+  const patterns = [
+    /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
+    /[?&](?:q|query|ll|center)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    /[?&]destination=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (!match) continue;
+    const lat = Number(match[1]);
+    const lng = Number(match[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+      return { lat, lng };
+    }
+  }
+  return null;
+}
+
+async function getLatLngFromGoogleMapsUrl(url) {
+  if (!url) return null;
+
+  const direct = parseLatLngFromGoogleMapsUrl(url);
+  if (direct) return direct;
+
+  // Short Google Maps links (maps.app.goo.gl / goo.gl/maps) usually redirect to a full URL.
+  // We resolve the redirect server-side, then parse the final URL. If Google blocks it,
+  // we fail silently and keep the salon without coordinates instead of breaking the request.
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    const response = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      signal: controller.signal,
+      headers: { 'user-agent': 'Mkass/1.0 (+https://mkass.app)' }
+    });
+    clearTimeout(timeout);
+    return parseLatLngFromGoogleMapsUrl(response.url) || null;
+  } catch (err) {
+    console.warn('Could not resolve Google Maps URL for coordinates:', err.message);
+    return null;
+  }
+}
+
+function numberOrNull(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+
 
 let schedulingSchemaReadyPromise = null;
 
@@ -629,19 +684,14 @@ router.put('/:salonId', requireSalonAccess, requireActiveSubscription, async (re
 
     const mapUrl = req.body.map_url || req.body.mapUrl || null;
 
-    const lat =
-      req.body.lat !== undefined &&
-      req.body.lat !== null &&
-      req.body.lat !== ''
-        ? Number(req.body.lat)
-        : null;
+    const explicitLat = numberOrNull(req.body.lat ?? req.body.latitude);
+    const explicitLng = numberOrNull(req.body.lng ?? req.body.longitude);
+    const extractedCoords = explicitLat !== null && explicitLng !== null
+      ? null
+      : await getLatLngFromGoogleMapsUrl(mapUrl);
 
-    const lng =
-      req.body.lng !== undefined &&
-      req.body.lng !== null &&
-      req.body.lng !== ''
-        ? Number(req.body.lng)
-        : null;
+    const lat = explicitLat !== null ? explicitLat : extractedCoords?.lat ?? null;
+    const lng = explicitLng !== null ? explicitLng : extractedCoords?.lng ?? null;
 
     const { rows } = await pool.query(
       `UPDATE salons SET
@@ -702,6 +752,13 @@ router.post('/', requireAdmin, async (req, res) => {
     } = req.body;
 
     const mapUrl = req.body.map_url || req.body.mapUrl || null;
+    const explicitLat = numberOrNull(req.body.lat ?? req.body.latitude);
+    const explicitLng = numberOrNull(req.body.lng ?? req.body.longitude);
+    const extractedCoords = explicitLat !== null && explicitLng !== null
+      ? null
+      : await getLatLngFromGoogleMapsUrl(mapUrl);
+    const lat = explicitLat !== null ? explicitLat : extractedCoords?.lat ?? null;
+    const lng = explicitLng !== null ? explicitLng : extractedCoords?.lng ?? null;
     const plan = req.body.plan || 'starter';
 
     if (!name || !username || !password) {
@@ -727,10 +784,12 @@ router.post('/', requireAdmin, async (req, res) => {
         child_cut,
         color,
         map_url,
+        lat,
+        lng,
         plan,
         subscription_status
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'active')
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'active')
       RETURNING *`,
       [
         id,
@@ -745,6 +804,8 @@ router.post('/', requireAdmin, async (req, res) => {
         childCut || false,
         color || '#28d36b',
         mapUrl,
+        lat,
+        lng,
         plan
       ]
     );

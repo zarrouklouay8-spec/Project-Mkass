@@ -3126,29 +3126,6 @@ function mkassSalonDistance(salon){
   return mkassDistanceKm(mkassUserLocation.lat, mkassUserLocation.lng, lat, lng);
 }
 
-function mkassParseManualCoord(value){
-  const n = Number(String(value || '').trim().replace(',', '.'));
-  return Number.isFinite(n) ? n : null;
-}
-
-function mkassGetSettingsCoords(){
-  const lat = mkassParseManualCoord(document.getElementById('sett-lat')?.value);
-  const lng = mkassParseManualCoord(document.getElementById('sett-lng')?.value);
-  if(lat === null || lng === null) return null;
-  if(lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
-  return { lat, lng };
-}
-
-function mkassFillCoordsFromMapUrl(){
-  const mapUrl = document.getElementById('sett-map-url')?.value.trim() || '';
-  const coords = mkassExtractCoordsFromMapUrl(mapUrl);
-  if(!coords) return;
-  const latInput = document.getElementById('sett-lat');
-  const lngInput = document.getElementById('sett-lng');
-  if(latInput && !latInput.value.trim()) latInput.value = String(coords.lat);
-  if(lngInput && !lngInput.value.trim()) lngInput.value = String(coords.lng);
-}
-
 function useCurrentLocation(event){
   if(event) event.stopPropagation();
   const inp=document.getElementById('location-inp');
@@ -7795,3 +7772,189 @@ body, input, button, select, textarea, .view, .modal, .modal *, .dashboard, .das
   font-family:'Space Grotesk','Plus Jakarta Sans',Inter,Arial,sans-serif !important;
 }
 </style>
+
+<!-- MKASS MOBILE GERANT LOGOUT + SWIPE NAV FIX -->
+<style id="mkass-mobile-gerant-logout-swipe-css">
+.mkass-mobile-logout-btn,
+.mkass-mobile-dash-switcher{
+  display:none;
+}
+@media(max-width:900px){
+  .mkass-mobile-logout-btn{
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    min-height:42px !important;
+    padding:0 14px !important;
+    border-radius:999px !important;
+    font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif !important;
+    font-size:13px !important;
+    font-weight:850 !important;
+    white-space:nowrap !important;
+  }
+  .mkass-mobile-dash-switcher{
+    display:grid !important;
+    grid-template-columns:repeat(3,1fr) !important;
+    gap:7px !important;
+    position:sticky !important;
+    top:calc(72px + env(safe-area-inset-top,0px)) !important;
+    z-index:250 !important;
+    margin:-2px 0 14px !important;
+    padding:7px !important;
+    border-radius:22px !important;
+    background:rgba(255,255,255,.82) !important;
+    border:1px solid var(--mk-border,#dedbd2) !important;
+    backdrop-filter:blur(16px) !important;
+    box-shadow:0 12px 34px rgba(16,16,16,.07) !important;
+  }
+  html.dark .mkass-mobile-dash-switcher{
+    background:rgba(23,27,24,.86) !important;
+    border-color:var(--mk-border,rgba(255,255,255,.14)) !important;
+    box-shadow:none !important;
+  }
+  .mkass-mobile-dash-tab{
+    min-height:44px !important;
+    border:0 !important;
+    border-radius:16px !important;
+    background:transparent !important;
+    color:var(--mk-soft-text,#656760) !important;
+    font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif !important;
+    font-size:13px !important;
+    font-weight:850 !important;
+    letter-spacing:-.01em !important;
+    cursor:pointer !important;
+  }
+  .mkass-mobile-dash-tab.active{
+    background:rgba(27,166,64,.14) !important;
+    color:var(--mk-green,#1ba640) !important;
+  }
+  #dash-content .dash-main{
+    touch-action:pan-y !important;
+  }
+}
+</style>
+<script id="mkass-mobile-gerant-logout-swipe-js">
+(function(){
+  const QUICK_TABS = [
+    { id:'dt-today', label:"Aujourd'hui" },
+    { id:'dt-finance', label:'Finance' },
+    { id:'dt-settings', label:'Salon' }
+  ];
+
+  function getActiveDashTabId(){
+    const active = document.querySelector('#dash-content .dtab.active');
+    return active ? active.id : 'dt-today';
+  }
+
+  function findSidebarButton(tabId){
+    return Array.from(document.querySelectorAll('.sidebar .sb-btn')).find(btn => (btn.getAttribute('onclick') || '').includes(tabId));
+  }
+
+  function goManagerTab(tabId){
+    const btn = findSidebarButton(tabId) || document.querySelector('.sidebar .sb-btn');
+    if(typeof window.swTab === 'function' && btn){
+      window.swTab(btn, tabId);
+    }else{
+      document.querySelectorAll('#dash-content .dtab').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById(tabId);
+      if(target) target.classList.add('active');
+    }
+    updateQuickTabs();
+  }
+
+  function updateQuickTabs(){
+    const activeId = getActiveDashTabId();
+    document.querySelectorAll('.mkass-mobile-dash-tab').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === activeId);
+    });
+  }
+
+  function ensureLogoutButton(){
+    if(!document.body.classList.contains('admin-logged')) return;
+    const actions = document.querySelector('#dt-today .dash-hdr > div:last-child') || document.querySelector('#dash-content .dash-hdr');
+    if(!actions || document.getElementById('mkass-mobile-logout-btn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'mkass-mobile-logout-btn';
+    btn.type = 'button';
+    btn.className = 'btn btn-ghost btn-sm mkass-mobile-logout-btn';
+    btn.textContent = 'Déconnexion';
+    btn.onclick = function(){ if(typeof window.logout === 'function') window.logout(); };
+    actions.appendChild(btn);
+  }
+
+  function ensureQuickSwitcher(){
+    if(!document.body.classList.contains('admin-logged')) return;
+    const dashMain = document.querySelector('#dash-content .dash-main');
+    if(!dashMain || document.getElementById('mkass-mobile-dash-switcher')) return;
+    const switcher = document.createElement('div');
+    switcher.id = 'mkass-mobile-dash-switcher';
+    switcher.className = 'mkass-mobile-dash-switcher';
+    switcher.setAttribute('aria-label','Navigation rapide gérant');
+    switcher.innerHTML = QUICK_TABS.map(t => `<button type="button" class="mkass-mobile-dash-tab" data-tab="${t.id}">${t.label}</button>`).join('');
+    switcher.querySelectorAll('button').forEach(btn => {
+      btn.onclick = function(){ goManagerTab(btn.dataset.tab); };
+    });
+    dashMain.prepend(switcher);
+    updateQuickTabs();
+  }
+
+  function installSwipeNavigation(){
+    const dashMain = document.querySelector('#dash-content .dash-main');
+    if(!dashMain || dashMain.dataset.mkassSwipeReady === '1') return;
+    dashMain.dataset.mkassSwipeReady = '1';
+    let startX = 0, startY = 0;
+    dashMain.addEventListener('touchstart', function(e){
+      if(!document.body.classList.contains('admin-logged')) return;
+      const target = e.target;
+      if(target && target.closest && target.closest('input,textarea,select,button,a,.modal,.overlay,.mk-legal-overlay')) return;
+      const t = e.touches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+    }, {passive:true});
+    dashMain.addEventListener('touchend', function(e){
+      if(!document.body.classList.contains('admin-logged') || !startX) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      startX = 0; startY = 0;
+      if(Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      const activeId = getActiveDashTabId();
+      let idx = QUICK_TABS.findIndex(tab => tab.id === activeId);
+      if(idx < 0) idx = 0;
+      const nextIdx = dx < 0 ? Math.min(idx + 1, QUICK_TABS.length - 1) : Math.max(idx - 1, 0);
+      if(nextIdx !== idx) goManagerTab(QUICK_TABS[nextIdx].id);
+    }, {passive:true});
+  }
+
+  function installMobileGerantUX(){
+    ensureLogoutButton();
+    ensureQuickSwitcher();
+    installSwipeNavigation();
+    updateQuickTabs();
+  }
+
+  window.mkassInstallMobileGerantUX = installMobileGerantUX;
+
+  const originalShowDash = window.showDash;
+  if(typeof originalShowDash === 'function' && !originalShowDash.__mkassMobileGerantWrapped){
+    window.showDash = function(){
+      const result = originalShowDash.apply(this, arguments);
+      setTimeout(installMobileGerantUX, 60);
+      return result;
+    };
+    window.showDash.__mkassMobileGerantWrapped = true;
+  }
+
+  const originalSwTab = window.swTab;
+  if(typeof originalSwTab === 'function' && !originalSwTab.__mkassMobileGerantWrapped){
+    window.swTab = function(btn, id){
+      const result = originalSwTab.apply(this, arguments);
+      setTimeout(updateQuickTabs, 0);
+      return result;
+    };
+    window.swTab.__mkassMobileGerantWrapped = true;
+  }
+
+  window.addEventListener('load', function(){ setTimeout(installMobileGerantUX, 900); });
+})();
+</script>

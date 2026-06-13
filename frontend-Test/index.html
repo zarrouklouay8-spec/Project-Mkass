@@ -8210,3 +8210,100 @@ body, input, button, select, textarea, .view, .modal, .modal *, .dashboard, .das
   font-family:'Space Grotesk','Plus Jakarta Sans',Inter,Arial,sans-serif !important;
 }
 </style>
+
+<!-- MKASS MOBILE SALON MENU STABLE FIX: standalone view, not inside dashboard dtab -->
+<style id="mkass-mobile-salon-menu-stable-fix-css">
+#view-mobile-salon-menu{background:var(--mk-soft,#f7f6f1);color:var(--mk-text,#101010);min-height:calc(100vh - 72px);padding:24px clamp(14px,4vw,28px) 120px;font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;}
+.mkass-mobile-salon-stable{max-width:980px;margin:0 auto;}
+.mkass-mobile-salon-stable-kicker{font-size:12px;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:#1ba640;margin-bottom:8px;}
+.mkass-mobile-salon-stable-title{font-size:38px;line-height:1;letter-spacing:-.055em;font-weight:900;color:var(--mk-text,#101010);margin-bottom:8px;}
+.mkass-mobile-salon-stable-sub{font-size:14px;line-height:1.55;color:var(--mk-soft-text,#656760);margin-bottom:18px;}
+.mkass-mobile-salon-stable-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+.mkass-mobile-salon-stable-card{width:100%;border:1px solid var(--mk-border,#dedbd2);background:var(--mk-panel,#fff);border-radius:24px;padding:18px;min-height:116px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;text-align:left;color:var(--mk-text,#101010);box-shadow:var(--mk-shadow,0 18px 48px rgba(16,16,16,.07));cursor:pointer;font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;}
+.mkass-mobile-salon-stable-card h3{font-size:21px;line-height:1.1;letter-spacing:-.04em;font-weight:900;margin:0 0 7px;color:var(--mk-text,#101010);font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;}
+.mkass-mobile-salon-stable-card p{font-size:13px;line-height:1.42;color:var(--mk-soft-text,#656760);margin:0;font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;}
+.mkass-mobile-salon-stable-pill{display:inline-flex;width:max-content;max-width:100%;margin-bottom:9px;padding:6px 10px;border-radius:999px;background:rgba(27,166,64,.12);color:#1ba640;font:900 11px/1 Inter,Arial,sans-serif;}
+.mkass-mobile-salon-stable-arrow{width:38px;height:38px;min-width:38px;border-radius:999px;background:rgba(27,166,64,.12);color:#1ba640;display:grid;place-items:center;font-size:24px;font-weight:900;margin-top:auto;}
+.mkass-mobile-salon-stable-logout{border-color:rgba(255,107,107,.28)!important;background:rgba(255,107,107,.06)!important;}
+.mkass-mobile-salon-stable-logout .mkass-mobile-salon-stable-arrow{background:rgba(255,107,107,.12);color:#e55353;}
+html.dark #view-mobile-salon-menu{background:var(--mk-soft,#0f1210);color:#f6f6f1;}
+html.dark .mkass-mobile-salon-stable-title,html.dark .mkass-mobile-salon-stable-card h3{color:#f6f6f1!important;}
+html.dark .mkass-mobile-salon-stable-card{background:var(--mk-panel,#171b18);border-color:var(--mk-border,rgba(255,255,255,.14));box-shadow:none;}
+@media(max-width:900px){
+  #view-mobile-salon-menu{padding:22px 14px 118px;}
+  .mkass-mobile-salon-stable-title{font-size:34px;}
+  .mkass-mobile-salon-stable-grid{grid-template-columns:1fr;gap:12px;}
+  .mkass-mobile-salon-stable-card{min-height:104px;border-radius:22px;padding:16px;box-shadow:none;}
+  .mkass-mobile-salon-stable-card h3{font-size:21px;}
+}
+</style>
+<script id="mkass-mobile-salon-menu-stable-fix-js">
+(function(){
+  function htmlEscape(v){return String(v ?? '').replace(/[&<>\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c] || c;});}
+  function card(id,title,desc,pill){
+    const pillHtml=pill?'<span class="mkass-mobile-salon-stable-pill">'+htmlEscape(pill)+'</span>':'';
+    return '<button type="button" class="mkass-mobile-salon-stable-card" onclick="mkassOpenStableSalonSection(\''+id+'\')"><div>'+pillHtml+'<h3>'+htmlEscape(title)+'</h3><p>'+htmlEscape(desc)+'</p></div><span class="mkass-mobile-salon-stable-arrow">›</span></button>';
+  }
+  function ensureView(){
+    let view=document.getElementById('view-mobile-salon-menu');
+    if(view) return view;
+    view=document.createElement('div');
+    view.id='view-mobile-salon-menu';
+    view.className='view';
+    view.innerHTML='<div class="mkass-mobile-salon-stable"><div class="mkass-mobile-salon-stable-kicker">Espace gérant</div><div class="mkass-mobile-salon-stable-title">Mon salon</div><div class="mkass-mobile-salon-stable-sub">Accédez rapidement à toutes les fonctions du salon depuis mobile.</div><div class="mkass-mobile-salon-stable-grid">'+
+      card('dt-today',"Aujourd'hui",'Planning du jour, confirmations et actions rapides.')+
+      card('dt-all','Tous les RDV','Consultez et gérez toutes les réservations.')+
+      card('dt-walkin','Caisse / Walk-in','Ajoutez un client venu sans réservation et encaissez.')+
+      card('dt-balance','Balance totale','Suivez les recettes et l’historique des paiements.')+
+      card('dt-finance','Finance Pro','Dépenses, bénéfice net et commissions staff.','Pro')+
+      card('dt-services','Mes services','Modifiez les prestations, prix et durées.')+
+      card('dt-staff','Personnel','Employés, accès staff, horaires et commissions.','Pro')+
+      card('dt-rules','Règles','No-show, blocage clients et règles avancées.','Pro')+
+      card('dt-settings','Paramètres','Profil salon, adresse, lien Google Maps, latitude/longitude et horaires.')+
+      '<button type="button" class="mkass-mobile-salon-stable-card mkass-mobile-salon-stable-logout" onclick="logout()"><div><h3>Déconnexion</h3><p>Quitter l’espace gérant sur cet appareil.</p></div><span class="mkass-mobile-salon-stable-arrow">×</span></button>'+
+      '</div></div>';
+    document.body.appendChild(view);
+    return view;
+  }
+  function activateBottom(){
+    document.querySelectorAll('.ntab').forEach(function(e){e.classList.remove('active');});
+    document.getElementById('nt-dash')?.classList.add('active');
+  }
+  window.mkassShowStableSalonMenu=function(){
+    window.__mkassWantsSalonMenu=true;
+    const view=ensureView();
+    document.querySelectorAll('.view').forEach(function(e){e.classList.remove('active');});
+    view.classList.add('active');
+    activateBottom();
+    document.body.classList.remove('show-explore-footer');
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+  window.mkassOpenStableSalonSection=function(id){
+    window.__mkassWantsSalonMenu=false;
+    if(typeof showView === 'function') showView('dashboard');
+    if((window.loggedSalonId || window.isAdmin || document.body.classList.contains('admin-logged')) && typeof showDash === 'function') showDash();
+    const btn=document.querySelector('.sb-btn[onclick*="'+id+'"]') || document.querySelector('.sb-btn');
+    if(typeof swTab === 'function' && document.getElementById(id)) swTab(btn,id);
+    setTimeout(function(){window.scrollTo({top:0,behavior:'smooth'});},30);
+  };
+  function wire(){
+    const salon=document.getElementById('nt-dash');
+    if(salon){
+      salon.textContent='Salon';
+      salon.onclick=function(ev){ev.preventDefault(); window.mkassShowStableSalonMenu(); return false;};
+    }
+  }
+  document.addEventListener('DOMContentLoaded',wire);
+  setTimeout(wire,200); setTimeout(wire,900); setTimeout(wire,1800);
+  // Auto-login/session restore may run after the user taps Salon; keep the menu stable instead of going blank.
+  let guardCount=0;
+  const guard=setInterval(function(){
+    wire();
+    if(window.__mkassWantsSalonMenu && !document.getElementById('view-mobile-salon-menu')?.classList.contains('active')){
+      window.mkassShowStableSalonMenu();
+    }
+    guardCount++;
+    if(guardCount>20) clearInterval(guard);
+  },300);
+})();
+</script>

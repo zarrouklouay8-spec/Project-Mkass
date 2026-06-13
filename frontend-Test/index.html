@@ -8307,3 +8307,110 @@ html.dark .mkass-mobile-salon-stable-card{background:var(--mk-panel,#171b18);bor
   },300);
 })();
 </script>
+
+<!-- MKASS FINAL MOBILE SALON MENU SCROLL FIX -->
+<style id="mkass-mobile-salon-menu-scroll-fix-css">
+@media (max-width: 900px){
+  body.mkass-mobile-salon-menu-open{
+    overflow:hidden !important;
+    height:100vh !important;
+    height:100dvh !important;
+  }
+  #view-mobile-salon-menu.active{
+    display:block !important;
+    position:fixed !important;
+    top:calc(72px + env(safe-area-inset-top, 0px)) !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+    z-index:850 !important;
+    min-height:0 !important;
+    height:auto !important;
+    overflow-y:auto !important;
+    -webkit-overflow-scrolling:touch !important;
+    overscroll-behavior:contain !important;
+    padding:18px 14px 24px !important;
+    background:var(--mk-soft,#0f1210) !important;
+    color:var(--mk-text,#f6f6f1) !important;
+  }
+  #view-mobile-salon-menu .mkass-mobile-salon-stable{
+    padding-bottom:18px !important;
+  }
+  #view-mobile-salon-menu .mkass-mobile-salon-stable-grid{
+    padding-bottom:20px !important;
+  }
+}
+</style>
+<script id="mkass-mobile-salon-menu-scroll-fix-js">
+(function(){
+  function makeSalonMenuFixed(){
+    const view=document.getElementById('view-mobile-salon-menu');
+    if(!view || !view.classList.contains('active')){
+      document.body.classList.remove('mkass-mobile-salon-menu-open');
+      return;
+    }
+    document.body.classList.add('mkass-mobile-salon-menu-open');
+    view.scrollTop=0;
+  }
+
+  const oldShowStable=window.mkassShowStableSalonMenu;
+  window.mkassShowStableSalonMenu=function(){
+    if(typeof oldShowStable === 'function') oldShowStable();
+    const view=document.getElementById('view-mobile-salon-menu');
+    if(view){
+      document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+      view.classList.add('active');
+    }
+    document.querySelectorAll('.ntab').forEach(function(e){e.classList.remove('active');});
+    document.getElementById('nt-dash')?.classList.add('active');
+    makeSalonMenuFixed();
+    return false;
+  };
+
+  const oldOpenSection=window.mkassOpenStableSalonSection;
+  window.mkassOpenStableSalonSection=function(id){
+    document.body.classList.remove('mkass-mobile-salon-menu-open');
+    if(typeof oldOpenSection === 'function') return oldOpenSection(id);
+  };
+
+  const oldShowView=window.showView;
+  if(typeof oldShowView === 'function'){
+    window.showView=function(name){
+      if(name !== 'mobile-salon-menu') document.body.classList.remove('mkass-mobile-salon-menu-open');
+      return oldShowView.apply(this, arguments);
+    };
+  }
+
+  const oldLogout=window.logout;
+  if(typeof oldLogout === 'function'){
+    window.logout=function(){
+      document.body.classList.remove('mkass-mobile-salon-menu-open');
+      return oldLogout.apply(this, arguments);
+    };
+  }
+
+  function wireFinalSalonButton(){
+    const salon=document.getElementById('nt-dash');
+    if(!salon) return;
+    salon.textContent='Salon';
+    salon.onclick=function(ev){
+      ev.preventDefault();
+      window.mkassShowStableSalonMenu();
+      return false;
+    };
+  }
+
+  document.addEventListener('DOMContentLoaded',function(){
+    wireFinalSalonButton();
+    makeSalonMenuFixed();
+  });
+  setTimeout(wireFinalSalonButton,300);
+  setTimeout(wireFinalSalonButton,1200);
+  window.addEventListener('resize',function(){
+    if(document.getElementById('view-mobile-salon-menu')?.classList.contains('active')) makeSalonMenuFixed();
+  });
+  window.addEventListener('orientationchange',function(){
+    setTimeout(makeSalonMenuFixed,250);
+  });
+})();
+</script>

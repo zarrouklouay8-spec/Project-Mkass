@@ -4918,6 +4918,7 @@ saveSettingsBtn = async function saveSettingsBtnApi() {
   const manualCoords = mkassGetSettingsCoords();
   const linkCoords = mkassExtractCoordsFromMapUrl(mapUrl);
   const coords = manualCoords || linkCoords;
+
   if ((document.getElementById("sett-lat")?.value.trim() || document.getElementById("sett-lng")?.value.trim()) && !manualCoords) {
     toast("Latitude ou longitude invalide");
     setButtonState("Erreur latitude/longitude", false);
@@ -4948,8 +4949,10 @@ saveSettingsBtn = async function saveSettingsBtnApi() {
     // Keep the UI in sync immediately after changing the salon name/address/map/status.
     const sidebarLabel = document.getElementById("sb-salon-lbl");
     if (sidebarLabel) sidebarLabel.textContent = (s.icon || "✂️") + " " + (s.name || "Mon salon");
+
     const greeting = document.getElementById("d-greeting");
     if (greeting) greeting.textContent = "Bonjour, " + s.name + " 👋";
+
     if (typeof renderShops === "function") renderShops();
 
     // Hours are saved separately. If that endpoint fails, keep settings saved and only warn in console.
@@ -4976,7 +4979,6 @@ saveSettingsBtn = async function saveSettingsBtnApi() {
     setTimeout(() => setButtonState(originalText, false), 2200);
   }
 };
-
 // Override admin create/delete salon.
 addSalon = async function addSalonApi() {
   const name = document.getElementById("ns-name").value.trim();

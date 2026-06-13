@@ -4902,45 +4902,94 @@ deleteSvc = async function deleteSvcApi(id) {
 };
 
 // Override settings save.
+// FIX: save only the real changed salon fields to Railway, keep map link separate
+// from distance coordinates, and do not accidentally erase cover_img by sending null.
 saveSettingsBtn = async function saveSettingsBtnApi() {
-  const s = SALONS.find((x) => x.id === loggedSalonId);
-  if (!s) return;
+  if (!loggedSalonId || loggedSalonId === "__admin__") {
+    toast("Connectez-vous comme gérant pour sauvegarder");
+    return;
+  }
 
+  const s = SALONS.find((x) => String(x.id) === String(loggedSalonId));
+  if (!s) {
+    toast("Salon introuvable");
+    return;
+  }
+
+  const name = document.getElementById("sett-name")?.value.trim() || s.name || "";
+  const address = document.getElementById("sett-addr")?.value.trim() || "";
+  const status = document.getElementById("sett-status")?.value || "open";
   const mapUrl = document.getElementById("sett-map-url")?.value.trim() || "";
+  const latRaw = document.getElementById("sett-lat")?.value.trim() || "";
+  const lngRaw = document.getElementById("sett-lng")?.value.trim() || "";
+
   const manualCoords = mkassGetSettingsCoords();
   const linkCoords = mkassExtractCoordsFromMapUrl(mapUrl);
   const coords = manualCoords || linkCoords;
-  if((document.getElementById('sett-lat')?.value.trim() || document.getElementById('sett-lng')?.value.trim()) && !manualCoords){
+
+  if ((latRaw || lngRaw) && !manualCoords) {
     toast("Latitude ou longitude invalide");
     return;
   }
+
   const patch = {
-    name: document.getElementById("sett-name").value,
-    address: document.getElementById("sett-addr").value,
-    status: document.getElementById("sett-status").value,
+    name,
+    address,
+    status,
     map_url: mapUrl,
-    mapUrl: mapUrl,
-    ...(coords ? { lat: coords.lat, lng: coords.lng, latitude: coords.lat, longitude: coords.lng } : {}),
-    coverImg: s.coverImg || null,
+    mapUrl: mapUrl
   };
+
+  if (coords) {
+    patch.lat = coords.lat;
+    patch.lng = coords.lng;
+    patch.latitude = coords.lat;
+    patch.longitude = coords.lng;
+  }
+
+  // Only send the cover image when there is really one. Sending coverImg:null
+  // makes the backend clear cover_img on every settings save.
+  if (s.coverImg) {
+    patch.coverImg = s.coverImg;
+    patch.cover_img = s.coverImg;
+  }
 
   try {
     const payload = await apiCall("PUT", `/salons/${loggedSalonId}`, patch, true);
     const updatedSalon = normalizeApiSalon(unwrapApi(payload, "salon") || { ...s, ...patch });
     Object.assign(s, updatedSalon);
 
-    // Hours are saved separately. If that endpoint fails, do not show a false
-    // server error for the salon settings/map URL because the main save worked.
+    // Keep local state exactly aligned with the fields visible in Paramètres.
+    s.name = name;
+    s.address = address;
+    s.status = status;
+    s.mapUrl = mapUrl;
+    s.map_url = mapUrl;
+    if (coords) {
+      s.lat = coords.lat;
+      s.lng = coords.lng;
+      s.latitude = coords.lat;
+      s.longitude = coords.lng;
+      const latInput = document.getElementById("sett-lat");
+      const lngInput = document.getElementById("sett-lng");
+      if (latInput && !latRaw) latInput.value = coords.lat;
+      if (lngInput && !lngRaw) lngInput.value = coords.lng;
+    }
+
     try {
       await saveSalonHours();
     } catch (hoursErr) {
       console.warn("Horaires non sauvegardés avec les paramètres:", hoursErr);
+      toast("Profil sauvegardé, horaires non sauvegardés");
+      return;
     }
 
     const greeting = document.getElementById("d-greeting");
     if (greeting) greeting.textContent = "Bonjour, " + s.name + " 👋";
+    renderShops();
     toast("✓ Paramètres sauvegardés");
   } catch (err) {
+    console.error("Erreur sauvegarde paramètres:", err);
     toast(err.message || "Erreur paramètres");
   }
 };

@@ -2805,7 +2805,7 @@ html:not(.dark) .mkass-select-option.selected{color:var(--mk-green,#1ba640);back
               </div>
             </div>
             <div class="f-row"><label class="f-label">Nouveau mot de passe</label><input class="f-input" type="password" id="sett-pw" placeholder="Laisser vide = pas de changement"></div>
-            <button class="btn btn-lime" id="sett-save-btn" onclick="saveSettingsBtn()">Sauvegarder les paramètres</button>
+            <button class="btn btn-lime" onclick="saveSettingsBtn()">Sauvegarder les paramètres</button>
           </div>
         </div>
 
@@ -4906,29 +4906,17 @@ saveSettingsBtn = async function saveSettingsBtnApi() {
   const s = SALONS.find((x) => x.id === loggedSalonId);
   if (!s) return;
 
-  const btn = document.getElementById("sett-save-btn");
-  const originalText = btn ? btn.textContent : "Sauvegarder les paramètres";
-  const setButtonState = (text, disabled) => {
-    if (!btn) return;
-    btn.textContent = text;
-    btn.disabled = !!disabled;
-  };
-
   const mapUrl = document.getElementById("sett-map-url")?.value.trim() || "";
   const manualCoords = mkassGetSettingsCoords();
   const linkCoords = mkassExtractCoordsFromMapUrl(mapUrl);
   const coords = manualCoords || linkCoords;
-
-  if ((document.getElementById("sett-lat")?.value.trim() || document.getElementById("sett-lng")?.value.trim()) && !manualCoords) {
+  if((document.getElementById('sett-lat')?.value.trim() || document.getElementById('sett-lng')?.value.trim()) && !manualCoords){
     toast("Latitude ou longitude invalide");
-    setButtonState("Erreur latitude/longitude", false);
-    setTimeout(() => setButtonState(originalText, false), 1800);
     return;
   }
-
   const patch = {
-    name: document.getElementById("sett-name").value.trim(),
-    address: document.getElementById("sett-addr").value.trim(),
+    name: document.getElementById("sett-name").value,
+    address: document.getElementById("sett-addr").value,
     status: document.getElementById("sett-status").value,
     map_url: mapUrl,
     mapUrl: mapUrl,
@@ -4940,45 +4928,31 @@ saveSettingsBtn = async function saveSettingsBtnApi() {
   if (s.coverImg) patch.coverImg = s.coverImg;
 
   try {
-    setButtonState("Sauvegarde...", true);
-
     const payload = await apiCall("PUT", `/salons/${loggedSalonId}`, patch, true);
     const updatedSalon = normalizeApiSalon(unwrapApi(payload, "salon") || { ...s, ...patch });
     Object.assign(s, updatedSalon);
 
     // Keep the UI in sync immediately after changing the salon name/address/map/status.
-    const sidebarLabel = document.getElementById("sb-salon-lbl");
-    if (sidebarLabel) sidebarLabel.textContent = (s.icon || "✂️") + " " + (s.name || "Mon salon");
+    const sidebarLabel = document.getElementById('sb-salon-lbl');
+    if (sidebarLabel) sidebarLabel.textContent = (s.icon || '✂️') + ' ' + (s.name || 'Mon salon');
+    if (typeof renderShops === 'function') renderShops();
 
-    const greeting = document.getElementById("d-greeting");
-    if (greeting) greeting.textContent = "Bonjour, " + s.name + " 👋";
-
-    if (typeof renderShops === "function") renderShops();
-
-    // Hours are saved separately. If that endpoint fails, keep settings saved and only warn in console.
+    // Hours are saved separately. If that endpoint fails, do not show a false
+    // server error for the salon settings/map URL because the main save worked.
     try {
-      if (typeof saveSalonHours === "function") await saveSalonHours();
+      await saveSalonHours();
     } catch (hoursErr) {
       console.warn("Horaires non sauvegardés avec les paramètres:", hoursErr);
     }
 
-    const pwInput = document.getElementById("sett-pw");
-    if (pwInput && pwInput.value.trim()) {
-      pwInput.value = "";
-      toast("✓ Paramètres sauvegardés. Mot de passe non modifié ici.");
-    } else {
-      toast("✓ Paramètres sauvegardés");
-    }
-
-    setButtonState("✓ Sauvegardé", false);
-    setTimeout(() => setButtonState(originalText, false), 1800);
+    const greeting = document.getElementById("d-greeting");
+    if (greeting) greeting.textContent = "Bonjour, " + s.name + " 👋";
+    toast("✓ Paramètres sauvegardés");
   } catch (err) {
-    console.error("Erreur sauvegarde paramètres:", err);
     toast(err.message || "Erreur paramètres");
-    setButtonState("Erreur - réessayer", false);
-    setTimeout(() => setButtonState(originalText, false), 2200);
   }
 };
+
 // Override admin create/delete salon.
 addSalon = async function addSalonApi() {
   const name = document.getElementById("ns-name").value.trim();
@@ -5664,66 +5638,2357 @@ installStaffAndRulesTabs();
 
 
 
-
-<!-- removed duplicated old mobile Salon menu block: 
-<!-- removed duplicated old mobile Salon menu block: 
-<!-- removed duplicated old mobile Salon menu block: 
-<!-- removed duplicated old mobile Salon menu block: 
-<!-- removed duplicated old mobile Salon menu block: 
-<!-- removed duplicated old mobile Salon menu block: 
-<!-- removed duplicated old mobile Salon menu block: 
-<!-- removed duplicated old mobile Salon menu block: 
-<!-- removed duplicated old mobile Salon menu block: 
-<!-- removed duplicated old mobile Salon menu block: 
-<!-- removed duplicated old mobile Salon menu block: 
-<!-- removed duplicated old mobile Salon menu block: 
-<!-- removed duplicated old mobile Salon menu block: 
-<!-- removed duplicated old mobile Salon menu block: 
-<!-- removed duplicated old mobile Salon menu block: <style id="mkass-salon-hub-visible-fix"> -->
-
-
-<!-- MKASS MOBILE SALON MENU STABLE FIX: standalone view, not inside dashboard dtab -->
-<!-- MKASS FINAL MOBILE SALON MENU SCROLL FIX -->
-
-
-
-<!-- MKASS DUPLICATE MOBILE SALON MENU REMOVED: final Mon salon menu above is the only active mobile Salon menu. -->
-
-
-
-<!-- MKASS HARD FIX: single mobile Salon menu only. Old Salon hub disabled. -->
-<style id="mkass-hard-single-salon-menu-css">
-  #dt-salon-hub,
-  #dt-mobile-salon-menu{display:none!important;visibility:hidden!important;pointer-events:none!important;}
-  #dt-salon-menu-final.active{display:block!important;visibility:visible!important;pointer-events:auto!important;}
-  @media(max-width:900px){body.admin-logged .sidebar{display:none!important;}}
+<style id="mkass-salon-hub-visible-fix">
+/* Visible Salon hub for gérant mobile UI: Aujourd'hui | Finance | Salon */
+.salon-hub-wrap{max-width:1120px;margin:0 auto;padding:0 0 2rem;font-family:'Plus Jakarta Sans',sans-serif!important;color:var(--mk-text,#101010)}
+.salon-hub-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px;flex-wrap:wrap}
+.salon-hub-kicker{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#1ba640;margin-bottom:8px}
+.salon-hub-title{font-family:'Plus Jakarta Sans',sans-serif!important;font-size:34px;line-height:1;letter-spacing:-.045em;font-weight:800;color:var(--mk-text,#101010)}
+.salon-hub-sub{font-size:14px;line-height:1.55;color:var(--mk-soft-text,#656760);margin-top:8px;max-width:620px}
+.salon-hub-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}
+.salon-hub-card{border:1px solid var(--mk-border,#dedbd2);background:var(--mk-panel,#fff);border-radius:24px;padding:18px;cursor:pointer;transition:.16s;box-shadow:var(--mk-shadow,0 18px 48px rgba(16,16,16,.07));display:flex;align-items:flex-start;justify-content:space-between;gap:14px;min-height:124px}
+.salon-hub-card:hover{transform:translateY(-2px);border-color:#1ba640;box-shadow:0 20px 52px rgba(27,166,64,.10)}
+.salon-hub-card h3{font-family:'Plus Jakarta Sans',sans-serif!important;font-size:20px;letter-spacing:-.035em;color:var(--mk-text,#101010);margin:0 0 7px;font-weight:800}
+.salon-hub-card p{font-family:'Plus Jakarta Sans',sans-serif!important;font-size:13px;line-height:1.5;color:var(--mk-soft-text,#656760);margin:0}
+.salon-hub-chip{font-family:'Plus Jakarta Sans',sans-serif!important;font-size:11px;font-weight:800;color:#07110b;background:#1ba640;border-radius:999px;padding:7px 10px;white-space:nowrap}
+.salon-hub-arrow{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:rgba(27,166,64,.12);color:#1ba640;font-weight:900;flex:0 0 36px;margin-top:auto}
+html.dark .salon-hub-wrap{color:#f6f6f1}html.dark .salon-hub-card{background:var(--mk-panel,#171b18);border-color:var(--mk-border,rgba(255,255,255,.14));box-shadow:none}html.dark .salon-hub-card h3,.dark .salon-hub-title{color:#f6f6f1}
+@media(max-width:900px){
+  .salon-hub-wrap{padding:0 0 110px}
+  .salon-hub-title{font-size:30px}
+  .salon-hub-grid{grid-template-columns:1fr;gap:12px}
+  .salon-hub-card{border-radius:22px;min-height:112px;padding:16px}
+  .salon-hub-card h3{font-size:19px}
+  .salon-hub-chip{font-size:10px;padding:6px 9px}
+}
+/* Make gérant sidebar tabs easier to find on phone while keeping bottom nav clean */
+@media(max-width:900px){
+  body.admin-logged .sidebar{display:none!important}
+  body.admin-logged #dt-salon-hub.active ~ *{}
+}
 </style>
-<script id="mkass-hard-single-salon-menu-js">
+
+<script id="mkass-visible-salon-hub-fix">
 (function(){
-  const PRO_IDS = new Set(['dt-finance','dt-staff','dt-rules']);
-  const PRO_MSG = 'Cette fonction est disponible avec le pack Pro.';
-  function esc(v){return String(v ?? '').replace(/[&<>\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c] || c;});}
-  function isOwner(){return Boolean(window.loggedSalonId || window.isAdmin || document.body.classList.contains('admin-logged'));}
-  function isPro(){
-    if(window.isAdmin || String(window.loggedSalonId)==='__admin__') return true;
-    const salon=(window.SALONS||[]).find(s=>String(s.id)===String(window.loggedSalonId));
-    const plan=String(salon?.plan || salon?.subscription_plan || salon?.subscriptionPlan || localStorage.getItem('mkass_salon_plan') || 'starter').toLowerCase();
-    return plan==='pro' || document.body.classList.contains('plan-pro');
+  function q(sel){return document.querySelector(sel)}
+  function activateBottom(id){
+    document.querySelectorAll('.ntab').forEach(e=>e.classList.remove('active'));
+    document.getElementById(id)?.classList.add('active');
   }
-  function toastPro(){ if(typeof window.toast==='function') window.toast(PRO_MSG); else alert(PRO_MSG); }
-  function activateBottom(id){document.querySelectorAll('.ntab').forEach(e=>e.classList.remove('active'));document.getElementById(id)?.classList.add('active');}
-  function removeDuplicateMenus(){
-    ['dt-salon-hub','dt-mobile-salon-menu'].forEach(function(id){ const el=document.getElementById(id); if(el) el.remove(); });
+  window.ensureSalonHub = function ensureSalonHub(){
+    if(typeof installStaffAndRulesTabs === 'function') installStaffAndRulesTabs();
+    const main=q('.dash-main');
+    if(!main || document.getElementById('dt-salon-hub')) return;
+    main.insertAdjacentHTML('afterbegin', `
+      <div id="dt-salon-hub" class="dtab">
+        <div class="salon-hub-wrap">
+          <div class="salon-hub-head">
+            <div>
+              <div class="salon-hub-kicker">Espace gérant</div>
+              <div class="salon-hub-title">Salon</div>
+              <div class="salon-hub-sub">Gérez tout ce qui configure votre salon : services, personnel, horaires, règles et paramètres. Les fonctions Pro sont visibles ici sur mobile.</div>
+            </div>
+          </div>
+          <div class="salon-hub-grid">
+            <div class="salon-hub-card" onclick="openSalonHubSection('dt-services')"><div><h3>Services & tarifs</h3><p>Ajoutez, modifiez ou supprimez les prestations visibles dans la réservation.</p></div><span class="salon-hub-arrow">›</span></div>
+            <div class="salon-hub-card" onclick="openSalonHubSection('dt-staff')"><div><span class="salon-hub-chip">Pro</span><h3 style="margin-top:10px">Personnel</h3><p>Ajoutez vos employés, leurs services, commissions et horaires pour le planning intelligent.</p></div><span class="salon-hub-arrow">›</span></div>
+            <div class="salon-hub-card" onclick="openSalonHubSection('dt-settings')"><div><h3>Horaires & profil</h3><p>Configurez les jours d’ouverture, les horaires, la photo, l’adresse et le statut.</p></div><span class="salon-hub-arrow">›</span></div>
+            <div class="salon-hub-card" onclick="openSalonHubSection('dt-rules')"><div><span class="salon-hub-chip">Pro</span><h3 style="margin-top:10px">Règles du salon</h3><p>Anti no-show, clients bloqués par téléphone et fidélité configurable.</p></div><span class="salon-hub-arrow">›</span></div>
+            <div class="salon-hub-card" onclick="openSalonHubSection('dt-finance')"><div><span class="salon-hub-chip">Pro</span><h3 style="margin-top:10px">Finance</h3><p>Chiffre d’affaires, dépenses, bénéfice net et commissions staff.</p></div><span class="salon-hub-arrow">›</span></div>
+          </div>
+        </div>
+      </div>`);
+  };
+  window.openSalonHubSection = function openSalonHubSection(id){
+    ensureSalonHub();
+    const btn = document.querySelector(`.sb-btn[onclick*="${id}"]`) || null;
+    if(typeof swTab === 'function') swTab(btn, id);
+    if(id==='dt-staff' && typeof loadStaffPro === 'function') loadStaffPro();
+    if(id==='dt-rules' && typeof loadSalonRules === 'function') loadSalonRules();
+    if(id==='dt-finance' && typeof loadFinanceData === 'function') loadFinanceData();
+    activateBottom(id==='dt-finance' ? 'nt-my-bookings' : 'nt-dash');
+    setTimeout(()=>window.scrollTo({top:0,behavior:'smooth'}),30);
+  };
+  window.showSalonHub = function showSalonHub(){
+    ensureSalonHub();
+    if(typeof showView === 'function') showView('dashboard');
+    if(document.getElementById('dash-login') && document.getElementById('dash-content') && (window.loggedSalonId || window.isAdmin || loggedSalonId || isAdmin)){
+      document.getElementById('dash-login').style.display='none';
+      document.getElementById('dash-content').style.display='block';
+    }
+    document.querySelectorAll('.dtab').forEach(e=>e.classList.remove('active'));
+    document.getElementById('dt-salon-hub')?.classList.add('active');
+    document.querySelectorAll('.sb-btn').forEach(e=>e.classList.remove('active'));
+    activateBottom('nt-dash');
+    setTimeout(()=>window.scrollTo({top:0,behavior:'smooth'}),30);
+  };
+  const previousSetOwnerMobileNav = window.setOwnerMobileNav;
+  window.setOwnerMobileNav = function(enabled){
+    if(typeof previousSetOwnerMobileNav === 'function') previousSetOwnerMobileNav(enabled);
+    const explore=document.getElementById('nt-explore');
+    const finance=document.getElementById('nt-my-bookings');
+    const salon=document.getElementById('nt-dash');
+    const login=document.getElementById('nt-login-mobile');
+    if(enabled && explore && finance && salon){
+      explore.textContent="Aujourd'hui";
+      finance.textContent='Finance';
+      salon.textContent='Salon';
+      explore.onclick=()=>openSalonHubSection('dt-today');
+      finance.onclick=()=>openSalonHubSection('dt-finance');
+      salon.onclick=()=>showSalonHub();
+      salon.style.display='inline-flex';
+      if(login) login.style.display='none';
+      document.body.classList.add('admin-logged');
+    }
+  };
+  const previousShowDash = window.showDash;
+  if(typeof previousShowDash === 'function'){
+    window.showDash = async function(){
+      const r = await previousShowDash.apply(this,arguments);
+      ensureSalonHub();
+      if(typeof setOwnerMobileNav === 'function') setOwnerMobileNav(true);
+      return r;
+    };
+  }
+  const previousSwTab = window.swTab;
+  if(typeof previousSwTab === 'function'){
+    window.swTab = function(btn,id){
+      ensureSalonHub();
+      const r = previousSwTab.apply(this,arguments);
+      if(loggedSalonId || isAdmin){
+        activateBottom(id==='dt-today'?'nt-explore':id==='dt-finance'?'nt-my-bookings':'nt-dash');
+      }
+      return r;
+    };
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    ensureSalonHub();
+    if(loggedSalonId || isAdmin) setOwnerMobileNav(true);
+  });
+  ensureSalonHub();
+})();
+</script>
+
+
+
+<style id="mkass-pro-lock-font-professional-final">
+/* FINAL: professional Mkass fonts + visible locked Pro menus */
+:root{--mk-green:#1ba640!important;--lime:#1ba640!important;}
+
+/* Use the real app font pair, not the stretched display font */
+html, body, input, button, select, textarea,
+.nav-pill, .ntab, .btn, .chip, .f-input,
+.salon-hub-wrap, .salon-hub-sub, .salon-hub-card p,
+.finance-pro, .staff-pro, .rules-pro, table, td, th {
+  font-family:'Plus Jakarta Sans', Inter, Arial, sans-serif!important;
+}
+.logo-text, .mkass-word,
+.mk-hero h1, .hero h1,
+.salon-hub-title, .salon-hub-card h3,
+.dash-title, .sp-title, .finance-title, .finance-section-title,
+.staff-title, .rules-title, .my-bookings-title, .signup-title {
+  font-family:'Plus Jakarta Sans','Plus Jakarta Sans',sans-serif!important;
+  font-weight:800!important;
+  letter-spacing:-.045em!important;
+  text-transform:none!important;
+}
+.logo-text,.mkass-word{letter-spacing:-.04em!important;font-weight:800!important;}
+.logo-mark{background:#1ba640!important;border-radius:11px!important;}
+.logo-mark svg circle,.logo-mark svg path{stroke:#fff!important;}
+
+/* Salon hub typography: calmer, premium, readable */
+.salon-hub-wrap{color:var(--mk-text,#101010)!important;}
+.salon-hub-kicker{
+  font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;
+  font-size:12px!important;
+  letter-spacing:.08em!important;
+  font-weight:800!important;
+  text-transform:uppercase!important;
+  color:#1ba640!important;
+  margin-bottom:8px!important;
+}
+.salon-hub-title{
+  font-size:44px!important;
+  line-height:.98!important;
+  color:var(--mk-text,#101010)!important;
+  margin:0 0 12px!important;
+}
+.salon-hub-sub{
+  max-width:760px!important;
+  font-size:15px!important;
+  line-height:1.55!important;
+  font-weight:500!important;
+  color:var(--mk-soft-text,#656760)!important;
+}
+.salon-hub-grid{gap:16px!important;}
+.salon-hub-card{
+  position:relative!important;
+  min-height:142px!important;
+  border-radius:24px!important;
+  background:var(--mk-panel,#fff)!important;
+  border:1px solid var(--mk-border,#dedbd2)!important;
+  box-shadow:0 14px 36px rgba(16,16,16,.045)!important;
+  transition:transform .16s ease, border-color .16s ease, opacity .16s ease!important;
+  overflow:hidden!important;
+}
+html.dark .salon-hub-card{box-shadow:none!important;}
+.salon-hub-card:hover{transform:translateY(-2px)!important;border-color:rgba(27,166,64,.35)!important;}
+.salon-hub-card h3{
+  font-size:24px!important;
+  line-height:1.05!important;
+  margin:0 0 10px!important;
+  color:var(--mk-text,#101010)!important;
+}
+.salon-hub-card p{
+  font-size:14px!important;
+  line-height:1.45!important;
+  font-weight:500!important;
+  color:var(--mk-soft-text,#656760)!important;
+  max-width:620px!important;
+}
+.salon-hub-chip{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:28px!important;
+  padding:0 11px!important;
+  border-radius:999px!important;
+  font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  background:rgba(27,166,64,.14)!important;
+  color:#1ba640!important;
+  margin:0 0 10px!important;
+}
+.salon-hub-arrow{background:rgba(27,166,64,.12)!important;color:#1ba640!important;}
+
+/* Starters see Pro cards greyed but cannot open them */
+body:not(.plan-pro) .salon-hub-card.pro-locked{
+  opacity:.56!important;
+  filter:grayscale(.65)!important;
+  cursor:not-allowed!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.35))!important;
+}
+html.dark body:not(.plan-pro) .salon-hub-card.pro-locked{
+  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.025))!important;
+}
+body:not(.plan-pro) .salon-hub-card.pro-locked:hover{transform:none!important;border-color:var(--mk-border,#dedbd2)!important;}
+body:not(.plan-pro) .salon-hub-card.pro-locked::after{
+  content:'Disponible avec le pack Pro';
+  position:absolute;
+  right:18px;
+  top:18px;
+  border-radius:999px;
+  padding:7px 11px;
+  background:rgba(16,16,16,.82);
+  color:#fff;
+  font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:-.01em;
+}
+html.dark body:not(.plan-pro) .salon-hub-card.pro-locked::after{background:rgba(255,255,255,.90);color:#101010;}
+body:not(.plan-pro) .salon-hub-card.pro-locked .salon-hub-arrow{background:rgba(101,103,96,.14)!important;color:var(--mk-soft-text,#656760)!important;}
+body:not(.plan-pro) .finance-pro-lock{display:block!important;}
+
+@media(max-width:900px){
+  .salon-hub-title{font-size:36px!important;line-height:1!important;}
+  .salon-hub-sub{font-size:14px!important;}
+  .salon-hub-card{min-height:132px!important;border-radius:22px!important;padding:18px!important;}
+  .salon-hub-card h3{font-size:23px!important;}
+  body:not(.plan-pro) .salon-hub-card.pro-locked::after{
+    position:static;
+    display:inline-flex;
+    margin-top:12px;
+    width:max-content;
+    max-width:100%;
+  }
+}
+</style>
+
+<script id="mkass-pro-menu-lock-final">
+(function(){
+  const PRO_TABS = new Set(['dt-staff','dt-rules','dt-finance']);
+  function isPro(){
+    try{
+      const salon = (window.SALONS || []).find(s => s.id === window.loggedSalonId);
+      return document.body.classList.contains('plan-pro') || String(salon?.plan || '').toLowerCase() === 'pro';
+    }catch(e){ return document.body.classList.contains('plan-pro'); }
+  }
+  function msg(){
+    if(typeof toast === 'function') toast('Cette fonction est disponible avec le pack Pro.');
+    else alert('Cette fonction est disponible avec le pack Pro.');
+  }
+  window.applySalonHubProLocks = function applySalonHubProLocks(){
+    const cards = document.querySelectorAll('.salon-hub-card');
+    cards.forEach(card=>{
+      const oc = card.getAttribute('onclick') || '';
+      const isProCard = oc.includes('dt-staff') || oc.includes('dt-rules') || oc.includes('dt-finance');
+      card.classList.toggle('pro-locked', isProCard);
+      if(isProCard){
+        card.setAttribute('aria-disabled', isPro() ? 'false' : 'true');
+        card.setAttribute('title', isPro() ? '' : 'Disponible avec le pack Pro');
+      }
+    });
+  };
+  const oldOpen = window.openSalonHubSection;
+  window.openSalonHubSection = function(id){
+    if(PRO_TABS.has(id) && !isPro()){
+      applySalonHubProLocks();
+      msg();
+      return false;
+    }
+    return oldOpen ? oldOpen.apply(this, arguments) : false;
+  };
+  const oldEnsure = window.ensureSalonHub;
+  if(typeof oldEnsure === 'function'){
+    window.ensureSalonHub = function(){
+      const r = oldEnsure.apply(this, arguments);
+      applySalonHubProLocks();
+      return r;
+    };
+  }
+  document.addEventListener('DOMContentLoaded', ()=>setTimeout(applySalonHubProLocks, 50));
+  setTimeout(applySalonHubProLocks, 100);
+})();
+</script>
+
+
+<style id="mkass-professional-font-override-v2">
+/* PROFESSIONAL MKASS FONT OVERRIDE
+   The previous patch used Plus Jakarta Sans for the Salon hub titles, which looked too stretched.
+   This restores the professional app font: Plus Jakarta Sans for headings, Inter for UI/body.
+*/
+:root{
+  --mk-green:#1ba640 !important;
+  --lime:#1ba640 !important;
+  --lime2:#168b35 !important;
+}
+
+html, body,
+input, button, select, textarea,
+.nav-pill, .ntab, .btn, .chip, .f-input,
+.salon-hub-wrap,
+.salon-hub-sub,
+.salon-hub-card p,
+.salon-hub-kicker,
+.salon-hub-chip,
+.finance-pro, .staff-pro, .rules-pro,
+table, td, th {
+  font-family:'Inter','Plus Jakarta Sans',Arial,sans-serif !important;
+}
+
+/* Professional display titles: not Plus Jakarta Sans, not Space Grotesk */
+.mk-hero h1,
+.hero h1,
+.shops-meta h2,
+.salon-hub-title,
+.salon-hub-card h3,
+.dash-title,
+.sp-title,
+.finance-title,
+.finance-section-title,
+.staff-title,
+.rules-title,
+.my-bookings-title,
+.signup-title,
+.login-card h2,
+.walkin-panel h3,
+.add-svc-form h3,
+.new-salon-form h3,
+.t-hdr h3 {
+  font-family:'Plus Jakarta Sans','Inter',Arial,sans-serif !important;
+  font-weight:800 !important;
+  letter-spacing:-0.045em !important;
+  text-transform:none !important;
+}
+
+/* Logo keeps the app wordmark style only */
+.logo-text,
+.mkass-word {
+  font-family:'Space Grotesk','Plus Jakarta Sans','Inter',Arial,sans-serif !important;
+  font-weight:700 !important;
+  letter-spacing:-0.055em !important;
+  text-transform:none !important;
+}
+.logo-mark{background:#1ba640 !important;border-radius:11px !important;}
+.logo-mark svg circle,.logo-mark svg path{stroke:#fff !important;}
+
+/* Salon hub: calmer premium layout */
+.salon-hub-kicker{
+  font-size:12px !important;
+  letter-spacing:.08em !important;
+  font-weight:800 !important;
+  color:#1ba640 !important;
+  margin-bottom:10px !important;
+}
+.salon-hub-title{
+  font-size:42px !important;
+  line-height:1.02 !important;
+  margin:0 0 12px !important;
+  color:var(--mk-text,#101010) !important;
+}
+.salon-hub-sub{
+  max-width:760px !important;
+  font-size:15px !important;
+  line-height:1.58 !important;
+  font-weight:500 !important;
+  color:var(--mk-soft-text,#656760) !important;
+}
+.salon-hub-card h3{
+  font-size:24px !important;
+  line-height:1.08 !important;
+  letter-spacing:-0.035em !important;
+  margin:0 0 9px !important;
+  color:var(--mk-text,#101010) !important;
+}
+.salon-hub-card p{
+  font-size:14px !important;
+  line-height:1.5 !important;
+  font-weight:500 !important;
+  color:var(--mk-soft-text,#656760) !important;
+}
+html.dark .salon-hub-title,
+html.dark .salon-hub-card h3{color:#f6f6f1 !important;}
+
+/* Pro cards: visible but clearly locked for Starter */
+body:not(.plan-pro) .salon-hub-card.pro-locked{
+  opacity:.55 !important;
+  filter:grayscale(.7) !important;
+  cursor:not-allowed !important;
+}
+body:not(.plan-pro) .salon-hub-card.pro-locked::after{
+  font-family:'Inter','Plus Jakarta Sans',Arial,sans-serif !important;
+  content:'Pack Pro requis' !important;
+}
+
+@media(max-width:900px){
+  .salon-hub-title{font-size:34px !important;letter-spacing:-0.04em !important;}
+  .salon-hub-card h3{font-size:22px !important;letter-spacing:-0.035em !important;}
+  .salon-hub-sub{font-size:14px !important;}
+}
+</style>
+
+
+<style id="mkass-sidebar-pro-lock-final-v2">
+/* FINAL: lock Pro items in the LEFT sidebar for Starter salons, keep normal for Pro salons */
+.sidebar .sb-btn.pro-sidebar-locked{
+  position:relative !important;
+  opacity:.52 !important;
+  filter:grayscale(.75) !important;
+  cursor:not-allowed !important;
+  color:var(--mk-soft-text,#656760) !important;
+  background:transparent !important;
+  pointer-events:auto !important;
+}
+.sidebar .sb-btn.pro-sidebar-locked:hover{
+  background:transparent !important;
+  color:var(--mk-soft-text,#656760) !important;
+}
+.sidebar .sb-btn.pro-sidebar-locked::after{
+  content:'Pro' !important;
+  margin-left:auto !important;
+  min-width:34px !important;
+  height:22px !important;
+  padding:0 8px !important;
+  border-radius:999px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  background:rgba(101,103,96,.16) !important;
+  color:var(--mk-soft-text,#656760) !important;
+  font-family:'Inter','Plus Jakarta Sans',Arial,sans-serif !important;
+  font-size:11px !important;
+  font-weight:850 !important;
+  letter-spacing:-.01em !important;
+}
+body.plan-pro .sidebar .sb-btn.pro-sidebar-locked{
+  opacity:1 !important;
+  filter:none !important;
+  cursor:pointer !important;
+  color:var(--mk-soft-text,#656760) !important;
+}
+body.plan-pro .sidebar .sb-btn.pro-sidebar-locked::after{
+  display:none !important;
+  content:none !important;
+}
+body.plan-pro .sidebar .sb-btn.pro-sidebar-locked:hover{
+  background:var(--mk-panel-2,#fbfaf7) !important;
+  color:var(--mk-text,#101010) !important;
+}
+body.plan-pro .sidebar .sb-btn.pro-sidebar-locked.active{
+  background:rgba(27,166,64,.14) !important;
+  color:#1ba640 !important;
+}
+
+/* Cards in Salon hub still stay greyed for Starter, but normal for Pro */
+body.plan-pro .salon-hub-card.pro-locked{
+  opacity:1 !important;
+  filter:none !important;
+  cursor:pointer !important;
+}
+body.plan-pro .salon-hub-card.pro-locked::after{
+  display:none !important;
+  content:none !important;
+}
+body.plan-pro .salon-hub-card.pro-locked .salon-hub-arrow{
+  background:rgba(27,166,64,.12) !important;
+  color:#1ba640 !important;
+}
+
+/* Keep the professional font, not stretched Plus Jakarta Sans, for this gérant area */
+.salon-hub-title,
+.salon-hub-card h3,
+.dash-title,
+.finance-title,
+.finance-section-title,
+.staff-title,
+.rules-title{
+  font-family:'Plus Jakarta Sans','Inter','Plus Jakarta Sans',Arial,sans-serif !important;
+  font-weight:800 !important;
+  letter-spacing:-.04em !important;
+  text-transform:none !important;
+}
+.sidebar .sb-btn{
+  font-family:'Inter','Plus Jakarta Sans',Arial,sans-serif !important;
+  font-weight:750 !important;
+}
+</style>
+
+<script id="mkass-sidebar-pro-lock-final-v2">
+(function(){
+  const PRO_TAB_IDS = new Set(['dt-finance','dt-staff','dt-rules']);
+  function getLoggedSalon(){
+    try{ return (window.SALONS || []).find(s => String(s.id) === String(window.loggedSalonId)); }
+    catch(e){ return null; }
+  }
+  function currentPlan(){
+    const salon = getLoggedSalon();
+    return String(salon?.plan || salon?.subscription_plan || salon?.pack || 'starter').toLowerCase();
+  }
+  function isPro(){
+    return document.body.classList.contains('plan-pro') || currentPlan() === 'pro';
+  }
+  function proToast(){
+    const message = 'Cette fonction est disponible avec le pack Pro.';
+    if(typeof window.toast === 'function') window.toast(message);
+    else alert(message);
+  }
+  function tabIdFromButton(btn){
+    const oc = btn && btn.getAttribute ? (btn.getAttribute('onclick') || '') : '';
+    const match = oc.match(/dt-(finance|staff|rules)/);
+    return match ? 'dt-' + match[1] : '';
+  }
+  function tagSidebarLocks(){
+    const pro = isPro();
+    document.body.classList.toggle('plan-pro', pro);
+    document.querySelectorAll('.sidebar .sb-btn').forEach(btn => {
+      const id = tabIdFromButton(btn);
+      if(PRO_TAB_IDS.has(id)){
+        btn.classList.add('pro-sidebar-locked');
+        btn.setAttribute('aria-disabled', pro ? 'false' : 'true');
+        btn.setAttribute('title', pro ? '' : 'Disponible avec le pack Pro');
+      }
+    });
+    if(typeof window.applySalonHubProLocks === 'function'){
+      try{ window.applySalonHubProLocks(); }catch(e){}
+    }
+  }
+
+  const previousSwTab = window.swTab;
+  window.swTab = function(btn, id){
+    if(PRO_TAB_IDS.has(id) && !isPro()){
+      tagSidebarLocks();
+      proToast();
+      return false;
+    }
+    return previousSwTab ? previousSwTab.apply(this, arguments) : false;
+  };
+
+  const previousShowDash = window.showDash;
+  if(typeof previousShowDash === 'function'){
+    window.showDash = function(){
+      const result = previousShowDash.apply(this, arguments);
+      setTimeout(tagSidebarLocks, 0);
+      setTimeout(tagSidebarLocks, 250);
+      return result;
+    };
+  }
+
+  const previousInstall = window.installStaffAndRulesTabs;
+  if(typeof previousInstall === 'function'){
+    window.installStaffAndRulesTabs = function(){
+      const result = previousInstall.apply(this, arguments);
+      setTimeout(tagSidebarLocks, 0);
+      return result;
+    };
+  }
+
+  const previousEnsure = window.ensureSalonHub;
+  if(typeof previousEnsure === 'function'){
+    window.ensureSalonHub = function(){
+      const result = previousEnsure.apply(this, arguments);
+      setTimeout(tagSidebarLocks, 0);
+      return result;
+    };
+  }
+
+  window.applySidebarProLocks = tagSidebarLocks;
+  document.addEventListener('DOMContentLoaded', () => setTimeout(tagSidebarLocks, 100));
+  setTimeout(tagSidebarLocks, 300);
+})();
+</script>
+
+
+<style id="mkass-final-owner-nav-pro-lock-clean-v3">
+/* Clean final override: gérant mobile nav + Pro/Starter locking */
+.sidebar .sb-btn[data-pro-feature="true"]{
+  position:relative !important;
+}
+body:not(.plan-pro):not(.role-admin) .sidebar .sb-btn[data-pro-feature="true"]{
+  opacity:.50 !important;
+  filter:grayscale(.75) !important;
+  cursor:not-allowed !important;
+  color:var(--mk-soft-text,#656760) !important;
+  background:transparent !important;
+}
+body:not(.plan-pro):not(.role-admin) .sidebar .sb-btn[data-pro-feature="true"]::after{
+  content:'Pro' !important;
+  margin-left:auto !important;
+  min-width:34px !important;
+  height:22px !important;
+  padding:0 8px !important;
+  border-radius:999px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  background:rgba(101,103,96,.16) !important;
+  color:var(--mk-soft-text,#656760) !important;
+  font:850 11px/1 Inter,Arial,sans-serif !important;
+}
+body.plan-pro .sidebar .sb-btn[data-pro-feature="true"],
+body.role-admin .sidebar .sb-btn[data-pro-feature="true"]{
+  opacity:1 !important;
+  filter:none !important;
+  cursor:pointer !important;
+}
+body.plan-pro .sidebar .sb-btn[data-pro-feature="true"]::after,
+body.role-admin .sidebar .sb-btn[data-pro-feature="true"]::after{display:none !important;content:none !important;}
+body:not(.plan-pro):not(.role-admin) .salon-hub-card.pro-locked{
+  opacity:.56 !important;
+  filter:grayscale(.72) !important;
+  cursor:not-allowed !important;
+}
+body:not(.plan-pro):not(.role-admin) .salon-hub-card.pro-locked::after{
+  content:'Pack Pro requis' !important;
+  display:inline-flex !important;
+  width:max-content !important;
+  max-width:100% !important;
+  margin-top:12px !important;
+  padding:7px 10px !important;
+  border-radius:999px !important;
+  background:rgba(101,103,96,.14) !important;
+  color:var(--mk-soft-text,#656760) !important;
+  font:850 12px/1 Inter,Arial,sans-serif !important;
+}
+body.plan-pro .salon-hub-card.pro-locked,
+body.role-admin .salon-hub-card.pro-locked{
+  opacity:1 !important;
+  filter:none !important;
+  cursor:pointer !important;
+}
+body.plan-pro .salon-hub-card.pro-locked::after,
+body.role-admin .salon-hub-card.pro-locked::after{display:none !important;content:none !important;}
+
+@media(max-width:900px){
+  body.admin-logged .nav-tabs{
+    grid-template-columns:repeat(3,1fr) !important;
+  }
+  body.admin-logged #nt-explore,
+  body.admin-logged #nt-my-bookings,
+  body.admin-logged #nt-dash{
+    display:flex !important;
+  }
+  body.admin-logged #nt-login-mobile{display:none !important;}
+  body.admin-logged .nav-pill.signup-nav,
+  body.admin-logged #nav-login-btn{display:none !important;}
+}
+</style>
+
+<script id="mkass-final-owner-nav-pro-lock-clean-v3">
+(function(){
+  const PRO_TABS = new Set(['dt-finance','dt-staff','dt-rules']);
+  const TOAST_MESSAGE = 'Cette fonction est disponible avec le pack Pro.';
+
+  function safeToast(message){
+    if(typeof window.toast === 'function') window.toast(message);
+    else alert(message);
+  }
+
+  function findSalon(){
+    try{
+      return (window.SALONS || []).find(s => String(s.id) === String(window.loggedSalonId));
+    }catch(e){ return null; }
+  }
+
+  function storedPlan(){
+    return String(localStorage.getItem('mkass_salon_plan') || localStorage.getItem('mkass_plan') || '').toLowerCase();
+  }
+
+  function activePlan(){
+    if(window.isAdmin || String(window.loggedSalonId) === '__admin__') return 'pro';
+    const salon = findSalon();
+    return String(salon?.plan || salon?.subscription_plan || salon?.subscriptionPlan || salon?.pack || storedPlan() || 'starter').toLowerCase();
+  }
+
+  function isPro(){
+    return activePlan() === 'pro' || document.body.classList.contains('plan-pro') || window.isAdmin || String(window.loggedSalonId) === '__admin__';
+  }
+
+  function setPublicMobileNav(){
+    const explore = document.getElementById('nt-explore');
+    const bookings = document.getElementById('nt-my-bookings');
+    const login = document.getElementById('nt-login-mobile');
+    const dash = document.getElementById('nt-dash');
+    if(explore){ explore.textContent = 'Explorer'; explore.onclick = function(){ showView('explore'); }; }
+    if(bookings){ bookings.textContent = 'Mes réservations'; bookings.onclick = function(){ showView('my-bookings'); }; }
+    if(login){ login.textContent = 'Se connecter'; login.onclick = function(){ showView('dashboard'); }; login.style.display='inline-flex'; }
+    if(dash){ dash.textContent = 'Mon salon'; dash.onclick = function(){ showView('dashboard'); }; dash.style.display='none'; }
+    document.body.classList.remove('admin-logged','role-admin');
+  }
+
+  function activateBottom(tabId){
+    document.querySelectorAll('.ntab').forEach(e => e.classList.remove('active'));
+    document.getElementById(tabId)?.classList.add('active');
+  }
+
+  function setOwnerMobileNav(){
+    const today = document.getElementById('nt-explore');
+    const finance = document.getElementById('nt-my-bookings');
+    const salon = document.getElementById('nt-dash');
+    const login = document.getElementById('nt-login-mobile');
+    if(today){ today.textContent = "Aujourd'hui"; today.onclick = function(){ openOwnerSection('dt-today'); }; }
+    if(finance){ finance.textContent = 'Finance'; finance.onclick = function(){ openOwnerSection('dt-finance'); }; }
+    if(salon){ salon.textContent = 'Salon'; salon.onclick = function(){ showOwnerSalonHub(); }; salon.style.display = 'inline-flex'; }
+    if(login) login.style.display = 'none';
+    document.body.classList.add('admin-logged');
+    document.body.classList.toggle('role-admin', Boolean(window.isAdmin || String(window.loggedSalonId) === '__admin__'));
+    refreshPlanState();
+  }
+
+  function ensureSalonHub(){
+    if(typeof window.installStaffAndRulesTabs === 'function') window.installStaffAndRulesTabs();
+    if(typeof window.ensureSalonHub === 'function' && !document.getElementById('dt-salon-hub')){
+      try{ window.ensureSalonHub(); }catch(e){}
+    }
+    refreshProLocks();
+  }
+
+  function showOwnerSalonHub(){
+    ensureSalonHub();
+    if(typeof window.showView === 'function') window.showView('dashboard');
+    const login = document.getElementById('dash-login');
+    const content = document.getElementById('dash-content');
+    if(login && content && (window.loggedSalonId || window.isAdmin)){
+      login.style.display = 'none';
+      content.style.display = 'block';
+    }
+    document.querySelectorAll('.dtab').forEach(e => e.classList.remove('active'));
+    const hub = document.getElementById('dt-salon-hub');
+    if(hub) hub.classList.add('active');
+    document.querySelectorAll('.sb-btn').forEach(e => e.classList.remove('active'));
+    activateBottom('nt-dash');
+    refreshProLocks();
+    setTimeout(() => window.scrollTo({top:0,behavior:'smooth'}), 20);
+  }
+
+  function openOwnerSection(id){
+    ensureSalonHub();
+    if(PRO_TABS.has(id) && !isPro()){
+      refreshProLocks();
+      safeToast(TOAST_MESSAGE);
+      return false;
+    }
+    if(typeof window.showView === 'function') window.showView('dashboard');
+    const btn = document.querySelector(`.sb-btn[onclick*="${id}"]`);
+    if(typeof window.swTab === 'function') window.swTab(btn || document.querySelector('.sb-btn'), id);
+    if(id === 'dt-finance' && typeof window.loadFinanceData === 'function') window.loadFinanceData();
+    if(id === 'dt-staff' && typeof window.loadStaffPro === 'function') window.loadStaffPro();
+    if(id === 'dt-rules' && typeof window.loadSalonRules === 'function') window.loadSalonRules();
+    activateBottom(id === 'dt-today' ? 'nt-explore' : id === 'dt-finance' ? 'nt-my-bookings' : 'nt-dash');
+    refreshProLocks();
+    setTimeout(() => window.scrollTo({top:0,behavior:'smooth'}), 20);
+    return true;
+  }
+
+  function refreshPlanState(){
+    const plan = activePlan();
+    const pro = isPro();
+    document.body.dataset.salonPlan = plan;
+    document.body.classList.toggle('plan-pro', pro);
+    document.body.classList.toggle('plan-starter', !pro);
+    const salon = findSalon();
+    if(salon && plan && salon.plan !== plan) salon.plan = plan;
+  }
+
+  function refreshProLocks(){
+    refreshPlanState();
+    document.querySelectorAll('.sidebar .sb-btn').forEach(btn => {
+      const oc = btn.getAttribute('onclick') || '';
+      const proFeature = /dt-(finance|staff|rules)/.test(oc);
+      if(proFeature){
+        btn.dataset.proFeature = 'true';
+        btn.setAttribute('aria-disabled', isPro() ? 'false' : 'true');
+        btn.setAttribute('title', isPro() ? '' : 'Disponible avec le pack Pro');
+      }
+    });
+    document.querySelectorAll('.salon-hub-card').forEach(card => {
+      const oc = card.getAttribute('onclick') || '';
+      const proFeature = /dt-(finance|staff|rules)/.test(oc);
+      card.classList.toggle('pro-locked', proFeature);
+      if(proFeature){
+        card.setAttribute('aria-disabled', isPro() ? 'false' : 'true');
+        card.setAttribute('title', isPro() ? '' : 'Disponible avec le pack Pro');
+      }
+    });
+  }
+
+  // Intercept login response to remember the plan returned by the backend.
+  const originalApiCall = window.apiCall;
+  if(typeof originalApiCall === 'function'){
+    window.apiCall = async function(method, path, body, requireAuth){
+      const data = await originalApiCall.apply(this, arguments);
+      if(String(path) === '/auth/login' && data){
+        const plan = String(data.plan || data.subscriptionPlan || data.subscription_plan || data.pack || 'starter').toLowerCase();
+        localStorage.setItem('mkass_salon_plan', plan);
+        if(data.salonId || data.salon_id){
+          const id = data.salonId || data.salon_id;
+          const salon = (window.SALONS || []).find(s => String(s.id) === String(id));
+          if(salon) salon.plan = plan;
+        }
+      }
+      return data;
+    };
+  }
+
+  const originalSwTab = window.swTab;
+  if(typeof originalSwTab === 'function'){
+    window.swTab = function(btn, id){
+      refreshProLocks();
+      if(PRO_TABS.has(id) && !isPro()){
+        safeToast(TOAST_MESSAGE);
+        return false;
+      }
+      const result = originalSwTab.apply(this, arguments);
+      if(window.loggedSalonId || window.isAdmin){
+        setOwnerMobileNav();
+        activateBottom(id === 'dt-today' ? 'nt-explore' : id === 'dt-finance' ? 'nt-my-bookings' : 'nt-dash');
+      }
+      refreshProLocks();
+      return result;
+    };
+  }
+
+  const originalShowDash = window.showDash;
+  if(typeof originalShowDash === 'function'){
+    window.showDash = async function(){
+      const result = await originalShowDash.apply(this, arguments);
+      ensureSalonHub();
+      setOwnerMobileNav();
+      refreshProLocks();
+      return result;
+    };
+  }
+
+  const originalLogout = window.logout;
+  if(typeof originalLogout === 'function'){
+    window.logout = function(){
+      localStorage.removeItem('mkass_salon_plan');
+      const result = originalLogout.apply(this, arguments);
+      setPublicMobileNav();
+      return result;
+    };
+  }
+
+  // Expose final helpers for older inline handlers.
+  window.setOwnerMobileNav = function(enabled){ enabled ? setOwnerMobileNav() : setPublicMobileNav(); };
+  window.showSalonHub = showOwnerSalonHub;
+  window.openOwnerSection = openOwnerSection;
+  window.applySidebarProLocks = refreshProLocks;
+  window.applySalonHubProLocks = refreshProLocks;
+
+  document.addEventListener('DOMContentLoaded', function(){
+    if(window.loggedSalonId || window.isAdmin) setOwnerMobileNav(); else setPublicMobileNav();
+    ensureSalonHub();
+    refreshProLocks();
+  });
+  setTimeout(function(){
+    if(window.loggedSalonId || window.isAdmin) setOwnerMobileNav();
+    ensureSalonHub();
+    refreshProLocks();
+  }, 300);
+})();
+</script>
+
+<style id="mkass-admin-subscription-staff-final-css">
+.subscription-alert{background:rgba(251,176,64,.14);border:1px solid rgba(251,176,64,.30);border-radius:22px;padding:16px;margin:0 0 18px;color:var(--mk-text,#101010);font-family:Inter,Arial,sans-serif;line-height:1.45}.subscription-alert strong{display:block;margin-bottom:5px}.admin-plan-select{min-width:110px;border:1px solid var(--mk-border,#dedbd2);border-radius:12px;padding:7px 9px;background:var(--mk-panel,#fff);color:var(--mk-text,#111);font-weight:800}.admin-status-row{display:flex;gap:6px;flex-wrap:wrap}.staff-account-box{border:1px solid var(--mk-border,#dedbd2);border-radius:18px;padding:12px;background:var(--mk-panel-2,#fbfaf7)}.staff-lite-wrap{max-width:960px;margin:0 auto;padding:2rem 1rem 8rem}.staff-lite-card{background:var(--mk-panel,#fff);border:1px solid var(--mk-border,#dedbd2);border-radius:24px;padding:18px;margin-bottom:14px;box-shadow:var(--mk-shadow,none)}.staff-lite-title{font-size:30px;font-weight:900;letter-spacing:-.04em;margin-bottom:6px}.staff-lite-sub{color:var(--mk-soft-text,#656760);font-size:14px;margin-bottom:16px}.staff-lite-row{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--mk-border,#dedbd2);padding:12px 0}.staff-lite-row:first-child{border-top:0}.staff-lite-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}@media(max-width:680px){.staff-lite-title{font-size:26px}.staff-lite-row{display:block}.admin-status-row{display:grid;grid-template-columns:1fr 1fr}.admin-plan-select{width:100%}}
+</style>
+<script id="mkass-admin-subscription-staff-final-js">
+(function(){
+  const SUB_MSG = "Votre abonnement doit être activé pour continuer. Choisissez un tarif, puis l'admin pourra débloquer votre compte après paiement.";
+
+  function isBlockedStatus(status){ return status && String(status).toLowerCase() !== 'active'; }
+  function setSubBanner(data){
+    const shell=document.querySelector('#view-signup .signup-shell'); if(!shell) return;
+    let alert=document.getElementById('mkass-subscription-alert');
+    if(!alert){ alert=document.createElement('div'); alert.id='mkass-subscription-alert'; alert.className='subscription-alert'; shell.prepend(alert); }
+    const plan=String(data?.plan || localStorage.getItem('mkass_salon_plan') || 'starter').toUpperCase();
+    const status=String(data?.subscriptionStatus || data?.subscription_status || localStorage.getItem('mkass_subscription_status') || 'pending_payment');
+    alert.innerHTML=`<strong>Abonnement ${plan} non actif</strong>${SUB_MSG}<br><small>Statut: ${status}</small>`;
+  }
+  function rememberSubscription(data){
+    if(!data) return;
+    const status=String(data.subscriptionStatus || data.subscription_status || 'active').toLowerCase();
+    const plan=String(data.plan || 'starter').toLowerCase();
+    localStorage.setItem('mkass_subscription_status', status);
+    localStorage.setItem('mkass_salon_plan', plan);
+    if(data.salonId || data.salon_id) localStorage.setItem('mkass_salon_id', data.salonId || data.salon_id);
+  }
+  function handleSubscriptionIfBlocked(data){
+    rememberSubscription(data);
+    const status=String(data?.subscriptionStatus || data?.subscription_status || 'active').toLowerCase();
+    if(data?.role !== 'admin' && isBlockedStatus(status)){
+      if(typeof selectSignupPlan==='function') selectSignupPlan(String(data.plan || 'starter').toLowerCase());
+      showView('signup'); setSubBanner(data); toast(SUB_MSG); return true;
+    }
+    return false;
+  }
+
+  const originalApiCall = window.apiCall;
+  if(typeof originalApiCall === 'function'){
+    window.apiCall = async function(method,path,body,requireAuth){
+      try{
+        const data = await originalApiCall.apply(this, arguments);
+        if(String(path)==='/auth/login') rememberSubscription(data);
+        return data;
+      }catch(err){
+        if(err && (err.code === 'SUBSCRIPTION_REQUIRED' || err.status === 402)){
+          setSubBanner(err); showView('signup'); toast(err.message || err.error || SUB_MSG);
+        }
+        throw err;
+      }
+    };
+  }
+
+  // Final login override: admin normal, gérant unpaid goes to tariff screen, staff gets limited UI.
+  window.tryLogin = async function tryLoginSubscriptionAware(){
+    const user=document.getElementById('dash-user')?.value.trim().toLowerCase();
+    const pw=document.getElementById('dash-pw')?.value;
+    if(!user || !pw){ toast('Entrez vos identifiants'); return; }
+    try{
+      const data=await apiCall('POST','/auth/login',{username:user,password:pw});
+      authToken=data.token; authRole=data.role; authSalonId=data.salonId || data.salon_id || null; authSalonName=data.salonName || data.salon_name || user;
+      localStorage.setItem('mkass_auth_token', authToken || ''); localStorage.setItem('mkass_auth_role', authRole || ''); localStorage.setItem('mkass_salon_id', authSalonId || ''); localStorage.setItem('mkass_salon_name', authSalonName || '');
+      localStorage.setItem('mkass_staff_id', data.staffId || data.staff_id || '');
+      localStorage.setItem('mkass_staff_name', data.staffName || data.staff_name || '');
+      localStorage.setItem('mkass_auth_expires_at', String(Date.now() + 30 * 24 * 60 * 60 * 1000));
+      rememberSubscription(data);
+      if(handleSubscriptionIfBlocked(data)){ document.getElementById('dash-pw').value=''; return; }
+      isAdmin = data.role === 'admin'; loggedSalonId = isAdmin ? '__admin__' : authSalonId;
+      if(data.role === 'staff'){
+        window.mkassStaffId = data.staffId || data.staff_id;
+        window.mkassStaffName = data.staffName || data.staff_name || user;
+        await showStaffLiteDashboard();
+      } else {
+        if(isAdmin && typeof loadAdminData==='function') await loadAdminData();
+        else if(typeof loadOwnerAppointments==='function') await loadOwnerAppointments();
+        showDash();
+      }
+      document.getElementById('dash-pw').value=''; toast('Connexion réussie');
+    }catch(err){ toast(err.message || err.error || 'Identifiants incorrects'); }
+  };
+
+  window.showStaffLiteDashboard = async function showStaffLiteDashboard(){
+    document.body.classList.add('admin-logged','staff-logged');
+    document.getElementById('dash-login').style.display='none';
+    document.getElementById('dash-content').style.display='block';
+    const grid=document.querySelector('#dash-content .dash-grid');
+    if(grid){ grid.innerHTML=`<main class="dash-main"><div class="staff-lite-wrap"><div class="staff-lite-card"><div class="staff-lite-title">Bonjour, ${window.mkassStaffName || 'Personnel'}</div><div class="staff-lite-sub">Votre planning personnel. Vous pouvez confirmer vos réservations et ajouter un walk-in.</div><button class="btn btn-ghost btn-sm" onclick="logout()">Déconnexion</button></div><div class="staff-lite-card"><div class="finance-section-title">Mon planning</div><div id="staff-lite-list" class="staff-lite-sub">Chargement...</div></div><div class="staff-lite-card"><div class="finance-section-title">Ajouter un walk-in</div><div class="finance-form-row"><div class="f-row"><label class="f-label">Client</label><input class="f-input" id="staff-wi-name" placeholder="Nom client"></div><div class="f-row"><label class="f-label">Total TND</label><input class="f-input" id="staff-wi-total" type="number" placeholder="Ex: 25"></div></div><div class="f-row"><label class="f-label">Services</label><input class="f-input" id="staff-wi-services" placeholder="Ex: Coupe homme, Barbe"></div><button class="btn btn-lime" onclick="staffAddWalkin()">Enregistrer walk-in</button></div></div></main>`; }
+    await loadStaffLiteAppointments();
+  };
+  window.loadStaffLiteAppointments = async function(){
+    const box=document.getElementById('staff-lite-list'); if(!box) return;
+    try{
+      const rows=await apiCall('GET',`/salons/${authSalonId}/staff/me/appointments`,null,true);
+      box.innerHTML=(rows||[]).length ? rows.map(a=>`<div class="staff-lite-row"><div><strong>${a.client_name || a.client || 'Client'}</strong><div>${String(a.appt_date || a.date || '').slice(0,10)} · ${String(a.appt_time || a.time || '').slice(0,5)} · ${(a.services||[]).join(', ')}</div><small>${a.status || ''}</small></div><div class="staff-lite-actions"><button class="ab ok" onclick="staffSetStatus('${a.id}','confirmed')">Confirmer</button><button class="ab ok" onclick="staffSetStatus('${a.id}','done')">Terminé</button><button class="ab bad" onclick="staffSetStatus('${a.id}','no_show')">Absent</button></div></div>`).join('') : 'Aucun rendez-vous assigné.';
+    }catch(err){ box.textContent=err.message || 'Impossible de charger le planning'; }
+  };
+  window.staffSetStatus = async function(id,status){ try{ await apiCall('PATCH',`/salons/${authSalonId}/staff/me/appointments/${id}/status`,{status},true); toast('Statut mis à jour'); await loadStaffLiteAppointments(); }catch(err){ toast(err.message || 'Erreur statut'); } };
+  window.staffAddWalkin = async function(){
+    const name=document.getElementById('staff-wi-name')?.value.trim() || 'Client';
+    const total=Number(document.getElementById('staff-wi-total')?.value || 0);
+    const services=String(document.getElementById('staff-wi-services')?.value || '').split(',').map(x=>x.trim()).filter(Boolean);
+    if(!services.length || total<=0){ toast('Ajoutez services et total'); return; }
+    try{ await apiCall('POST',`/salons/${authSalonId}/staff/me/walkin`,{name,total,services,prices:[],payMode:'cash'},true); toast('Walk-in enregistré'); await loadStaffLiteAppointments(); }catch(err){ toast(err.message || 'Erreur walk-in'); }
+  };
+
+  // Admin: richer salon table for plan + payment blocking/unblocking.
+  window.renderAdminTable = function renderAdminTableSubscription(){
+    if(!isAdmin) return;
+    const tb=document.getElementById('admin-salons-tb'); if(!tb) return;
+    tb.innerHTML=(SALONS||[]).map(s=>{
+      const cnt=appointments.filter(a=>a.salonId===s.id).length;
+      const plan=String(s.plan || 'starter').toLowerCase();
+      const sub=String(s.subscription_status || s.subscriptionStatus || 'active').toLowerCase();
+      return `<tr><td><div class="av-cell"><div style="font-size:20px">${s.icon || '✂️'}</div><div><div class="cl-name">${s.name}</div><div class="cl-ph">${s.username || s.id}</div></div></div></td><td><select class="admin-plan-select" onchange="adminSetPlan('${s.id}',this.value)"><option value="starter" ${plan==='starter'?'selected':''}>Starter</option><option value="pro" ${plan==='pro'?'selected':''}>Pro</option></select></td><td><span class="badge ${sub==='active'?'badge-confirmed':'badge-pending'}">${sub}</span></td><td>${cnt}</td><td><div class="admin-status-row"><button class="ab ok" onclick="adminSetSubscription('${s.id}','active')">Débloquer</button><button class="ab bad" onclick="adminSetSubscription('${s.id}','past_due')">Bloquer paiement</button><button class="ab bad" onclick="removeSalon('${s.id}')">Supprimer</button></div></td></tr>`;
+    }).join('');
+  };
+  window.adminSetPlan = async function(id,plan){ try{ const row=await apiCall('PATCH',`/admin/salons/${id}/plan`,{plan,subscriptionStatus:'active'},true); const s=SALONS.find(x=>String(x.id)===String(id)); if(s) Object.assign(s,row); renderAdminTable(); toast('Plan mis à jour'); }catch(err){ toast(err.message || 'Erreur plan'); } };
+  window.adminSetSubscription = async function(id,status){ try{ const row=await apiCall('PATCH',`/admin/salons/${id}/subscription`,{status,reason: status==='active'?null:'Paiement abonnement requis'},true); const s=SALONS.find(x=>String(x.id)===String(id)); if(s) Object.assign(s,row); renderAdminTable(); toast(status==='active'?'Salon débloqué':'Salon bloqué'); }catch(err){ toast(err.message || 'Erreur abonnement'); } };
+
+  function injectStaffAccountFields(){
+    const active=document.getElementById('staff-active'); if(!active || document.getElementById('staff-account-fields')) return;
+    active.closest('.f-row')?.insertAdjacentHTML('afterend',`<div class="staff-account-box" id="staff-account-fields"><div class="finance-section-sub" style="margin-bottom:10px">Compte personnel limité: voir son planning, confirmer les réservations et ajouter ses walk-ins.</div><div class="staff-form-row"><div class="f-row"><label class="f-label">Login personnel</label><input class="f-input" id="staff-username" placeholder="ex: ahmed-nour"></div><div class="f-row"><label class="f-label">Mot de passe personnel</label><input class="f-input" id="staff-password" type="password" placeholder="laisser vide = inchangé"></div></div><div class="f-row"><label class="f-label">Accès personnel</label><select class="f-input" id="staff-account-active"><option value="false">Désactivé</option><option value="true">Activé</option></select></div></div>`);
+  }
+  const oldReset=window.resetStaffForm; if(typeof oldReset==='function') window.resetStaffForm=function(){ const r=oldReset.apply(this,arguments); injectStaffAccountFields(); ['staff-username','staff-password'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';}); const aa=document.getElementById('staff-account-active'); if(aa) aa.value='false'; return r; };
+  const oldEdit=window.editStaffMember; if(typeof oldEdit==='function') window.editStaffMember=async function(id){ const r=await oldEdit.apply(this,arguments); injectStaffAccountFields(); const st=(MKASS_STAFF||[]).find(x=>Number(x.id)===Number(id)); if(st){ const u=document.getElementById('staff-username'); if(u) u.value=st.username || ''; const aa=document.getElementById('staff-account-active'); if(aa) aa.value=st.account_active ? 'true':'false'; const pw=document.getElementById('staff-password'); if(pw) pw.value=''; } return r; };
+  const oldSave=window.saveStaffMember; if(typeof oldSave==='function') window.saveStaffMember=async function(){
+    injectStaffAccountFields();
+    const id=document.getElementById('staff-id')?.value;
+    const name=document.getElementById('staff-name')?.value.trim();
+    if(!name){ toast('Nom du personnel obligatoire'); return; }
+    const body={name,phone:document.getElementById('staff-phone')?.value.trim() || '',role:document.getElementById('staff-role')?.value.trim() || '',commission_rate:Number(document.getElementById('staff-commission')?.value || 0)/100,active:document.getElementById('staff-active')?.value !== 'false',username:document.getElementById('staff-username')?.value.trim() || null,account_active:document.getElementById('staff-account-active')?.value === 'true'};
+    const pw=document.getElementById('staff-password')?.value; if(pw) body.password=pw;
+    let staffId=id?Number(id):null;
+    try{ const row=id?await apiCall('PUT',`/salons/${loggedSalonId}/staff/${id}`,body,true):await apiCall('POST',`/salons/${loggedSalonId}/staff`,body,true); staffId=Number(row.id||id); }catch(err){ toast('Erreur personnel: '+(err.message || 'Erreur serveur')); return; }
+    try{ const checked=[...document.querySelectorAll('#staff-services-list input[type=checkbox]:checked')].map(x=>Number(x.value)).filter(Boolean); await apiCall('PUT',`/salons/${loggedSalonId}/staff/${staffId}/services`,{serviceIds:checked,durationMinutes:30},true); await apiCall('POST',`/salons/${loggedSalonId}/staff/${staffId}/hours`,{hours:collectStaffHours()},true); toast('Personnel sauvegardé'); await loadStaffPro(); resetStaffForm(); }catch(err){ toast('Membre enregistré, mais services/horaires non sauvegardés: '+(err.message || 'Erreur serveur')); }
+  };
+
+  function injectRulesCommission(){
+    const rulesGrid=document.querySelector('#dt-rules .rules-grid'); if(!rulesGrid || document.getElementById('rule-default-staff-commission')) return;
+    rulesGrid.insertAdjacentHTML('beforeend',`<div class="rules-card"><div class="rule-switch"><div><strong>Taux personnel par défaut</strong><small>Pourcentage que le personnel prend sur les rendez-vous assignés. Exemple: 50% ou 60%.</small></div></div><div class="f-row"><label class="f-label">Taux personnel (%)</label><input class="f-input" id="rule-default-staff-commission" type="number" min="0" max="100" value="50"></div><button class="btn btn-lime" onclick="saveSalonRules()">Sauvegarder taux personnel</button><div class="rules-help">Finance Pro le compte comme paiement/charge personnel.</div></div>`);
+  }
+  const oldApplyRules=window.applyRulesForm; if(typeof oldApplyRules==='function') window.applyRulesForm=function(r){ const out=oldApplyRules.apply(this,arguments); injectRulesCommission(); const el=document.getElementById('rule-default-staff-commission'); if(el) el.value=Math.round(Number(r?.default_staff_commission_rate ?? 0.5)*100); return out; };
+  const oldCollectRules=window.collectRulesForm; if(typeof oldCollectRules==='function') window.collectRulesForm=function(){ const body=oldCollectRules.apply(this,arguments); const el=document.getElementById('rule-default-staff-commission'); if(el) body.default_staff_commission_rate=Number(el.value || 0)/100; return body; };
+
+  document.addEventListener('DOMContentLoaded',()=>{ setTimeout(()=>{injectStaffAccountFields(); injectRulesCommission();},700); });
+})();
+</script>
+
+
+
+<style id="mkass-personnel-save-team-hotfix-css">
+.staff-error-note{background:rgba(255,107,107,.10);border:1px solid rgba(255,107,107,.25);border-radius:16px;padding:12px;color:#d14b4b;font-size:13px;line-height:1.45;margin-top:10px}
+.staff-loading-note{padding:16px;color:var(--mk-soft-text,#656760);font-weight:700}
+</style>
+<script id="mkass-personnel-save-team-hotfix-js">
+(function(){
+  function getMsg(err){ return err?.details || err?.message || err?.error || 'Erreur serveur personnel'; }
+  function normalizedStaffRows(rows){
+    return (Array.isArray(rows) ? rows : []).map(st => ({
+      ...st,
+      id: st.id,
+      salon_id: st.salon_id || st.salonId,
+      name: st.name || st.full_name || 'Personnel',
+      phone: st.phone || '',
+      role: st.role || '',
+      active: st.active !== false,
+      commission_rate: Number(st.commission_rate ?? st.commissionRate ?? 0),
+      username: st.username || '',
+      account_active: !!(st.account_active ?? st.accountActive)
+    }));
+  }
+  function ensureAccountBox(){
+    const active=document.getElementById('staff-active');
+    if(!active) return;
+    if(document.getElementById('staff-account-fields')) return;
+    active.closest('.f-row')?.insertAdjacentHTML('afterend',`<div class="staff-account-box" id="staff-account-fields"><div class="finance-section-sub" style="margin-bottom:10px">Compte personnel limité: voir son planning, confirmer ses réservations et ajouter ses walk-ins.</div><div class="staff-form-row"><div class="f-row"><label class="f-label">Login personnel</label><input class="f-input" id="staff-username" placeholder="ex: ahmed-nour"></div><div class="f-row"><label class="f-label">Mot de passe personnel</label><input class="f-input" id="staff-password" type="password" placeholder="laisser vide = inchangé"></div></div><div class="f-row"><label class="f-label">Accès personnel</label><select class="f-input" id="staff-account-active"><option value="true">Activé</option><option value="false">Désactivé</option></select></div></div>`);
+  }
+  function renderStaffListSafe(){
+    const el=document.getElementById('staff-list'); if(!el) return;
+    const rows=normalizedStaffRows(window.MKASS_STAFF || []);
+    el.innerHTML = rows.length ? rows.map(st=>`
+      <div class="staff-item" onclick="editStaffMember(${Number(st.id)})" data-staff-id="${st.id}">
+        <div style="display:flex;align-items:center;gap:10px"><div class="staff-avatar">${staffInitials(st.name)}</div><div class="staff-info"><strong>${st.name}</strong><small>${st.role || 'Membre'} · ${Math.round(Number(st.commission_rate||0)*100)}% commission${st.username ? ' · '+st.username : ''}</small></div></div>
+        <span class="staff-status ${st.active===false?'off':''}">${st.active===false?'Désactivé':'Actif'}</span>
+      </div>`).join('') : '<div class="finance-muted">Aucun membre ajouté. Cliquez sur Nouveau membre.</div>';
+  }
+  window.renderStaffList = renderStaffListSafe;
+
+  window.loadStaffPro = async function loadStaffProHotfix(){
+    if(!window.loggedSalonId || loggedSalonId === '__admin__') return;
+    if(typeof installStaffAndRulesTabs === 'function') installStaffAndRulesTabs();
+    ensureAccountBox();
+    const list=document.getElementById('staff-list');
+    if(list) list.innerHTML='<div class="staff-loading-note">Chargement de l’équipe...</div>';
+    if(typeof loadServicesForSalon === 'function'){
+      try{ await loadServicesForSalon(loggedSalonId); }catch(err){ console.warn('Services reload failed:', getMsg(err)); }
+    }
+    try{
+      const rows = await apiCall('GET', `/salons/${loggedSalonId}/staff`, null, true);
+      window.MKASS_STAFF = normalizedStaffRows(rows);
+    }catch(err){
+      window.MKASS_STAFF = [];
+      if(list) list.innerHTML = `<div class="staff-error-note"><strong>Impossible de charger l’équipe.</strong><br>${getMsg(err)}<br><small>Vérifiez que le salon est Pro + abonnement actif, puis lancez npm run db:migrate.</small></div>`;
+      toast('Personnel: ' + getMsg(err));
+      return;
+    }
+    renderStaffListSafe();
+    if(typeof renderStaffServices === 'function') renderStaffServices([]);
+    if(typeof renderStaffHours === 'function') renderStaffHours(window.DEFAULT_STAFF_HOURS || DEFAULT_STAFF_HOURS);
+    ensureAccountBox();
+  };
+
+  const baseReset = window.resetStaffForm;
+  window.resetStaffForm = function resetStaffFormHotfix(){
+    if(typeof installStaffAndRulesTabs === 'function') installStaffAndRulesTabs();
+    if(typeof baseReset === 'function') baseReset.apply(this, arguments);
+    ensureAccountBox();
+    ['staff-id','staff-name','staff-phone','staff-role','staff-commission','staff-username','staff-password'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+    const active=document.getElementById('staff-active'); if(active) active.value='true';
+    const aa=document.getElementById('staff-account-active'); if(aa) aa.value='true';
+    renderStaffListSafe();
+  };
+
+  const baseEdit = window.editStaffMember;
+  window.editStaffMember = async function editStaffMemberHotfix(id){
+    ensureAccountBox();
+    if(typeof baseEdit === 'function') await baseEdit.apply(this, arguments);
+    ensureAccountBox();
+    const st=normalizedStaffRows(window.MKASS_STAFF || []).find(x=>Number(x.id)===Number(id));
+    if(st){
+      const u=document.getElementById('staff-username'); if(u) u.value=st.username || '';
+      const p=document.getElementById('staff-password'); if(p) p.value='';
+      const aa=document.getElementById('staff-account-active'); if(aa) aa.value=st.account_active ? 'true' : 'false';
+    }
+  };
+
+  window.saveStaffMember = async function saveStaffMemberHotfix(){
+    if(!window.loggedSalonId || loggedSalonId==='__admin__') return;
+    ensureAccountBox();
+    const id=document.getElementById('staff-id')?.value;
+    const name=document.getElementById('staff-name')?.value.trim();
+    if(!name){ toast('Nom du personnel obligatoire'); return; }
+    const username=document.getElementById('staff-username')?.value.trim().toLowerCase() || null;
+    const password=document.getElementById('staff-password')?.value || '';
+    const accountSelect=document.getElementById('staff-account-active')?.value;
+    const body={
+      name,
+      phone:document.getElementById('staff-phone')?.value.trim() || '',
+      role:document.getElementById('staff-role')?.value.trim() || '',
+      commission_rate:Number(document.getElementById('staff-commission')?.value || 0)/100,
+      active:document.getElementById('staff-active')?.value !== 'false',
+      username,
+      account_active: accountSelect === 'true' || (!!username && !!password)
+    };
+    if(password) body.password=password;
+    let staffId=id?Number(id):null;
+    try{
+      const row=id ? await apiCall('PUT',`/salons/${loggedSalonId}/staff/${id}`,body,true) : await apiCall('POST',`/salons/${loggedSalonId}/staff`,body,true);
+      staffId=Number(row.id || id);
+      if(!staffId) throw new Error('ID personnel introuvable après sauvegarde');
+    }catch(err){
+      toast('Erreur personnel: '+getMsg(err));
+      return;
+    }
+    try{
+      const checked=[...document.querySelectorAll('#staff-services-list input[type=checkbox]:checked')].map(x=>Number(x.value)).filter(Boolean);
+      await apiCall('PUT',`/salons/${loggedSalonId}/staff/${staffId}/services`,{serviceIds:checked,durationMinutes:30},true);
+      await apiCall('POST',`/salons/${loggedSalonId}/staff/${staffId}/hours`,{hours:collectStaffHours()},true);
+      toast('Personnel sauvegardé');
+      await loadStaffPro();
+      resetStaffForm();
+    }catch(err){
+      toast('Membre créé, mais services/horaires non sauvegardés: '+getMsg(err));
+      await loadStaffPro();
+    }
+  };
+
+  const oldSw = window.swTab;
+  if(typeof oldSw === 'function'){
+    window.swTab = function swTabStaffReload(btn,id){
+      const r=oldSw.apply(this, arguments);
+      if(id === 'dt-staff') setTimeout(()=>window.loadStaffPro && window.loadStaffPro(), 80);
+      return r;
+    };
+  }
+})();
+</script>
+
+
+
+<style id="mkass-personnel-click-save-fix-css">
+.staff-save-status{
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:14px;
+  background:rgba(27,166,64,.10);
+  border:1px solid rgba(27,166,64,.22);
+  color:var(--mk-text,#101010);
+  font:700 13px/1.4 Inter,Arial,sans-serif;
+  display:none;
+}
+.staff-save-status.show{display:block;}
+.staff-error-note,.staff-loading-note{
+  padding:12px;
+  border-radius:14px;
+  background:var(--mk-panel-2,#fbfaf7);
+  color:var(--mk-soft-text,#656760);
+  font:650 13px/1.45 Inter,Arial,sans-serif;
+}
+.staff-error-note{border:1px solid rgba(255,107,107,.25);color:#d94d4d;}
+</style>
+
+<script id="mkass-personnel-click-save-fix-js">
+(function(){
+  function currentGerantSalonId(){
+    // Important: the app declares loggedSalonId with let, so it is NOT window.loggedSalonId.
+    // This helper reads the real logged-in salon id from the global lexical scope.
+    try{ if(typeof loggedSalonId !== 'undefined' && loggedSalonId) return loggedSalonId; }catch(e){}
+    return window.loggedSalonId || null;
+  }
+  function msgFrom(err){
+    return err?.details || err?.error || err?.message || 'Erreur serveur personnel';
+  }
+
+  function ensurePersonnelUi(){
+    if(typeof installStaffAndRulesTabs === 'function') installStaffAndRulesTabs();
+
+    const active = document.getElementById('staff-active');
+    if(active && !document.getElementById('staff-account-fields')){
+      active.closest('.f-row')?.insertAdjacentHTML('afterend', `
+        <div class="staff-account-box" id="staff-account-fields">
+          <div class="finance-section-sub" style="margin-bottom:10px">
+            Compte personnel limité: planning personnel, confirmation RDV et walk-in.
+          </div>
+          <div class="staff-form-row">
+            <div class="f-row"><label class="f-label">Login personnel</label><input class="f-input" id="staff-username" placeholder="ex: ahmed-nour"></div>
+            <div class="f-row"><label class="f-label">Mot de passe personnel</label><input class="f-input" id="staff-password" type="password" placeholder="laisser vide = inchangé"></div>
+          </div>
+          <div class="f-row"><label class="f-label">Accès personnel</label><select class="f-input" id="staff-account-active"><option value="true">Activé</option><option value="false">Désactivé</option></select></div>
+        </div>
+      `);
+    }
+
+    const actions = document.querySelector('.staff-actions');
+    if(actions){
+      const saveBtn = [...actions.querySelectorAll('button')].find(b => (b.textContent || '').trim().toLowerCase().includes('sauvegarder'));
+      if(saveBtn){
+        saveBtn.id = 'staff-save-btn';
+        saveBtn.type = 'button';
+        saveBtn.onclick = null;
+      }
+      actions.querySelectorAll('button').forEach(b => { if(!b.type) b.type = 'button'; });
+      if(!document.getElementById('staff-save-status')){
+        actions.insertAdjacentHTML('afterend','<div id="staff-save-status" class="staff-save-status"></div>');
+      }
+    }
+  }
+
+  function setStatus(text, isError){
+    const el = document.getElementById('staff-save-status');
+    if(el){
+      el.textContent = text;
+      el.classList.add('show');
+      el.style.borderColor = isError ? 'rgba(255,107,107,.35)' : 'rgba(27,166,64,.22)';
+      el.style.background = isError ? 'rgba(255,107,107,.10)' : 'rgba(27,166,64,.10)';
+    }
+    if(typeof toast === 'function') toast(text);
+  }
+
+  function normalizeRows(rows){
+    return (Array.isArray(rows) ? rows : []).map(st => ({
+      ...st,
+      salon_id: st.salon_id || st.salonId,
+      name: st.name || st.full_name || 'Personnel',
+      phone: st.phone || '',
+      role: st.role || '',
+      active: st.active !== false,
+      commission_rate: Number(st.commission_rate ?? st.commissionRate ?? 0),
+      username: st.username || '',
+      account_active: Boolean(st.account_active ?? st.accountActive)
+    }));
+  }
+
+  window.loadStaffPro = async function loadStaffProFixed(){
+    const salonId = currentGerantSalonId();
+    if(!salonId || salonId === '__admin__') return;
+    ensurePersonnelUi();
+    const list = document.getElementById('staff-list');
+    if(list) list.innerHTML = '<div class="staff-loading-note">Chargement de l’équipe...</div>';
+
+    if(typeof loadServicesForSalon === 'function'){
+      try{ await loadServicesForSalon(salonId); }catch(e){ console.warn('Service load ignored:', msgFrom(e)); }
+    }
+
+    try{
+      const rows = await apiCall('GET', `/salons/${salonId}/staff`, null, true);
+      window.MKASS_STAFF = normalizeRows(rows);
+      if(typeof renderStaffList === 'function') renderStaffList();
+      if(typeof renderStaffServices === 'function') renderStaffServices([]);
+      if(typeof renderStaffHours === 'function') renderStaffHours(window.DEFAULT_STAFF_HOURS || (typeof DEFAULT_STAFF_HOURS !== 'undefined' ? DEFAULT_STAFF_HOURS : []));
+      ensurePersonnelUi();
+    }catch(err){
+      window.MKASS_STAFF = [];
+      if(list) list.innerHTML = `<div class="staff-error-note"><strong>Impossible de charger l’équipe.</strong><br>${msgFrom(err)}<br><small>Vérifiez: salon Pro, abonnement actif, puis npm run db:migrate.</small></div>`;
+      setStatus('Erreur chargement équipe: ' + msgFrom(err), true);
+    }
+  };
+
+  const previousRenderStaffList = window.renderStaffList;
+  window.renderStaffList = function renderStaffListFixed(){
+    const el = document.getElementById('staff-list');
+    if(!el) return;
+    const rows = normalizeRows(window.MKASS_STAFF || []);
+    el.innerHTML = rows.length ? rows.map(st => `
+      <div class="staff-item" onclick="editStaffMember(${Number(st.id)})" data-staff-id="${st.id}">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="staff-avatar">${typeof staffInitials === 'function' ? staffInitials(st.name) : '?'}</div>
+          <div class="staff-info"><strong>${st.name}</strong><small>${st.role || 'Membre'} · ${Math.round(Number(st.commission_rate || 0)*100)}% commission${st.username ? ' · '+st.username : ''}</small></div>
+        </div>
+        <span class="staff-status ${st.active===false?'off':''}">${st.active===false?'Désactivé':'Actif'}</span>
+      </div>`).join('') : '<div class="finance-muted">Aucun membre ajouté. Cliquez sur Nouveau membre.</div>';
+    ensurePersonnelUi();
+  };
+
+  const previousResetStaffForm = window.resetStaffForm;
+  window.resetStaffForm = function resetStaffFormFixed(){
+    ensurePersonnelUi();
+    if(typeof previousResetStaffForm === 'function') previousResetStaffForm.apply(this, arguments);
+    ensurePersonnelUi();
+    ['staff-id','staff-name','staff-phone','staff-role','staff-commission','staff-username','staff-password'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    const active=document.getElementById('staff-active'); if(active) active.value='true';
+    const access=document.getElementById('staff-account-active'); if(access) access.value='true';
+    const status=document.getElementById('staff-save-status'); if(status) status.classList.remove('show');
+  };
+
+  const previousEditStaffMember = window.editStaffMember;
+  window.editStaffMember = async function editStaffMemberFixed(id){
+    ensurePersonnelUi();
+    if(typeof previousEditStaffMember === 'function') await previousEditStaffMember.apply(this, arguments);
+    ensurePersonnelUi();
+    const st = normalizeRows(window.MKASS_STAFF || []).find(x => Number(x.id) === Number(id));
+    if(st){
+      const u=document.getElementById('staff-username'); if(u) u.value = st.username || '';
+      const p=document.getElementById('staff-password'); if(p) p.value = '';
+      const a=document.getElementById('staff-account-active'); if(a) a.value = st.account_active ? 'true' : 'false';
+    }
+  };
+
+  window.saveStaffMember = async function saveStaffMemberFixed(){
+    ensurePersonnelUi();
+    const salonId = currentGerantSalonId();
+    if(!salonId || salonId === '__admin__'){
+      setStatus('Connectez-vous comme gérant du salon.', true);
+      return;
+    }
+
+    const name = document.getElementById('staff-name')?.value.trim();
+    if(!name){ setStatus('Nom du personnel obligatoire', true); return; }
+
+    const id = document.getElementById('staff-id')?.value || '';
+    const username = document.getElementById('staff-username')?.value.trim().toLowerCase() || '';
+    const password = document.getElementById('staff-password')?.value || '';
+    const body = {
+      name,
+      phone: document.getElementById('staff-phone')?.value.trim() || '',
+      role: document.getElementById('staff-role')?.value.trim() || '',
+      commission_rate: Number(document.getElementById('staff-commission')?.value || 0) / 100,
+      active: document.getElementById('staff-active')?.value !== 'false',
+      username: username || null,
+      account_active: document.getElementById('staff-account-active')?.value === 'true' || Boolean(username && password)
+    };
+    if(password) body.password = password;
+
+    const btn=document.getElementById('staff-save-btn');
+    if(btn) btn.disabled = true;
+    setStatus('Sauvegarde du personnel...', false);
+
+    let staffId = id ? Number(id) : null;
+    try{
+      const row = id
+        ? await apiCall('PUT', `/salons/${salonId}/staff/${id}`, body, true)
+        : await apiCall('POST', `/salons/${salonId}/staff`, body, true);
+      staffId = Number(row.id || id);
+      if(!staffId) throw new Error('ID personnel introuvable après sauvegarde');
+    }catch(err){
+      setStatus('Erreur création personnel: ' + msgFrom(err), true);
+      if(btn) btn.disabled = false;
+      return;
+    }
+
+    try{
+      const checked = [...document.querySelectorAll('#staff-services-list input[type=checkbox]:checked')].map(x => Number(x.value)).filter(Boolean);
+      await apiCall('PUT', `/salons/${salonId}/staff/${staffId}/services`, { serviceIds: checked, durationMinutes: 30 }, true);
+      if(typeof collectStaffHours === 'function'){
+        await apiCall('POST', `/salons/${salonId}/staff/${staffId}/hours`, { hours: collectStaffHours() }, true);
+      }
+      setStatus('Personnel sauvegardé. Rechargement de l’équipe...', false);
+      await window.loadStaffPro();
+      if(typeof window.resetStaffForm === 'function') window.resetStaffForm();
+      setStatus('Personnel sauvegardé et affiché dans Équipe.', false);
+    }catch(err){
+      setStatus('Membre créé, mais services/horaires non sauvegardés: ' + msgFrom(err), true);
+      await window.loadStaffPro();
+    }finally{
+      if(btn) btn.disabled = false;
+    }
+  };
+
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest('#staff-save-btn, .staff-actions .btn-lime');
+    if(!btn) return;
+    const actions = btn.closest('.staff-actions');
+    if(!actions) return;
+    if((btn.textContent || '').toLowerCase().includes('sauvegarder')){
+      e.preventDefault();
+      e.stopPropagation();
+      window.saveStaffMember();
+    }
+  }, true);
+
+  const previousSwTab = window.swTab;
+  if(typeof previousSwTab === 'function'){
+    window.swTab = function swTabPersonnelFixed(btn,id){
+      const r = previousSwTab.apply(this, arguments);
+      if(id === 'dt-staff') setTimeout(() => window.loadStaffPro && window.loadStaffPro(), 120);
+      return r;
+    };
+  }
+
+  const previousShowDash = window.showDash;
+  if(typeof previousShowDash === 'function'){
+    window.showDash = async function showDashPersonnelFixed(){
+      const r = await previousShowDash.apply(this, arguments);
+      setTimeout(() => ensurePersonnelUi(), 150);
+      return r;
+    };
+  }
+
+  window.addEventListener('error', function(ev){
+    if(String(ev?.message || '').toLowerCase().includes('staff') || String(ev?.filename || '').includes('index')){
+      console.error('Mkass frontend error:', ev.message, ev.error);
+    }
+  });
+
+  setTimeout(ensurePersonnelUi, 500);
+})();
+</script>
+
+
+
+<style id="mkass-personnel-stuck-save-final-css">
+.staff-save-status.is-saving{
+  border-color:rgba(27,166,64,.35)!important;
+  background:rgba(27,166,64,.12)!important;
+}
+.staff-save-status.is-error{
+  border-color:rgba(255,107,107,.45)!important;
+  background:rgba(255,107,107,.12)!important;
+}
+</style>
+<script id="mkass-personnel-stuck-save-final-js">
+(function(){
+  let personnelSaveBusy = false;
+
+  function getSalonId(){
+    try { if (typeof loggedSalonId !== 'undefined' && loggedSalonId) return loggedSalonId; } catch(e) {}
+    return window.loggedSalonId || localStorage.getItem('mkass_salon_id') || null;
+  }
+
+  function getToken(){
+    try { if (typeof authToken !== 'undefined' && authToken) return authToken; } catch(e) {}
+    return localStorage.getItem('mkass_auth_token') || null;
+  }
+
+  function getApi(){
+    try { if (typeof API !== 'undefined' && API) return API; } catch(e) {}
+    return 'https://mkass-backend-test.up.railway.app/api';
+  }
+
+  function status(text, isError){
+    let el = document.getElementById('staff-save-status');
+    const actions = document.querySelector('.staff-actions');
+    if(!el && actions){
+      actions.insertAdjacentHTML('afterend','<div id="staff-save-status" class="staff-save-status"></div>');
+      el = document.getElementById('staff-save-status');
+    }
+    if(el){
+      el.textContent = text;
+      el.classList.add('show');
+      el.classList.toggle('is-error', !!isError);
+      el.classList.toggle('is-saving', !isError);
+    }
+    if(isError) console.error(text);
+    if(typeof toast === 'function') toast(text);
+  }
+
+  function errorMessage(err){
+    return err?.details || err?.error || err?.message || String(err || 'Erreur serveur personnel');
+  }
+
+  async function apiWithTimeout(method, path, body, ms){
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms || 15000);
+    try{
+      const res = await fetch(getApi() + path, {
+        method,
+        signal: ctrl.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(getToken() ? { Authorization: 'Bearer ' + getToken() } : {})
+        },
+        body: body ? JSON.stringify(body) : null
+      });
+      let data = null;
+      try { data = await res.json(); } catch(e) {}
+      if(!res.ok){
+        const msg = data?.details || data?.error || data?.message || ('API error ' + res.status);
+        throw new Error(msg);
+      }
+      return data;
+    }catch(err){
+      if(err && err.name === 'AbortError'){
+        throw new Error('La requête personnel a expiré. Vérifiez que le backend Railway est bien déployé et que npm run db:migrate a été exécuté.');
+      }
+      throw err;
+    }finally{
+      clearTimeout(t);
+    }
+  }
+
+  function selectedServiceIds(){
+    return [...document.querySelectorAll('#staff-services-list input[type=checkbox]:checked')]
+      .map(x => Number(x.value)).filter(Boolean);
+  }
+
+  function selectedHours(){
+    if(typeof collectStaffHours === 'function') return collectStaffHours();
+    return [...document.querySelectorAll('#staff-hours-grid .staff-hours-row')].map(row => ({
+      weekday: Number(row.dataset.day ?? row.dataset.weekday ?? 0),
+      active: row.querySelector('input[type=checkbox]')?.checked !== false,
+      start_time: row.querySelector('.staff-start,.hours-start,input[type=time]')?.value || '09:00',
+      end_time: row.querySelector('.staff-end,.hours-end,input[type=time]:last-child')?.value || '23:59'
+    }));
+  }
+
+  async function reloadStaffListHard(salonId){
+    const rows = await apiWithTimeout('GET', `/salons/${salonId}/staff`, null, 15000);
+    window.MKASS_STAFF = Array.isArray(rows) ? rows : [];
+    if(typeof renderStaffList === 'function') renderStaffList();
+    return rows;
+  }
+
+  window.saveStaffMember = async function saveStaffMemberReallyFixed(){
+    if(personnelSaveBusy) return;
+
+    const salonId = getSalonId();
+    if(!salonId || salonId === '__admin__'){
+      status('Connectez-vous comme gérant du salon.', true);
+      return;
+    }
+
+    const name = document.getElementById('staff-name')?.value?.trim();
+    if(!name){ status('Nom du personnel obligatoire.', true); return; }
+
+    const id = document.getElementById('staff-id')?.value || null;
+    const username = document.getElementById('staff-username')?.value?.trim().toLowerCase() || '';
+    const password = document.getElementById('staff-password')?.value || '';
+    const payload = {
+      id,
+      name,
+      phone: document.getElementById('staff-phone')?.value?.trim() || '',
+      role: document.getElementById('staff-role')?.value?.trim() || '',
+      active: document.getElementById('staff-active')?.value !== 'false',
+      commission_rate: Number(document.getElementById('staff-commission')?.value || 0) / 100,
+      username: username || null,
+      account_active: document.getElementById('staff-account-active')?.value === 'true' || Boolean(username && password),
+      serviceIds: selectedServiceIds(),
+      hours: selectedHours(),
+      durationMinutes: 30
+    };
+    if(password) payload.password = password;
+
+    const btn = document.getElementById('staff-save-btn') || [...document.querySelectorAll('.staff-actions button')].find(b => /sauvegarder/i.test(b.textContent || ''));
+    personnelSaveBusy = true;
+    if(btn) btn.disabled = true;
+    status('Sauvegarde du personnel...', false);
+
+    try{
+      let saved;
+      try{
+        saved = await apiWithTimeout('POST', `/salons/${salonId}/staff/full-save`, payload, 18000);
+      }catch(firstErr){
+        if(!/not found|404|Route/i.test(errorMessage(firstErr))) throw firstErr;
+        saved = id
+          ? await apiWithTimeout('PUT', `/salons/${salonId}/staff/${id}`, payload, 18000)
+          : await apiWithTimeout('POST', `/salons/${salonId}/staff`, payload, 18000);
+        const staffId = Number(saved?.id || id);
+        if(!staffId) throw new Error('ID personnel introuvable après sauvegarde.');
+        await apiWithTimeout('PUT', `/salons/${salonId}/staff/${staffId}/services`, { serviceIds: payload.serviceIds, durationMinutes: 30 }, 18000);
+        await apiWithTimeout('POST', `/salons/${salonId}/staff/${staffId}/hours`, { hours: payload.hours }, 18000);
+      }
+
+      status('Personnel sauvegardé. Rechargement de l’équipe...', false);
+      await reloadStaffListHard(salonId);
+      if(typeof resetStaffForm === 'function') resetStaffForm();
+      status('Personnel sauvegardé et affiché dans Équipe.', false);
+    }catch(err){
+      status('Erreur personnel: ' + errorMessage(err), true);
+    }finally{
+      personnelSaveBusy = false;
+      if(btn) btn.disabled = false;
+    }
+  };
+
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest('#staff-save-btn, .staff-actions button');
+    if(!btn || !/sauvegarder/i.test(btn.textContent || '')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+    window.saveStaffMember();
+  }, true);
+})();
+</script>
+
+
+
+<!-- MKASS STAFF DESKTOP DASHBOARD FIX: keep mobile OK, fix PC staff layout/header -->
+<style id="mkass-staff-desktop-dashboard-fix">
+@media (min-width: 901px){
+  body.staff-logged .nav-tabs{
+    display:none !important;
+  }
+  body.staff-logged .nav-r{
+    display:flex !important;
+    align-items:center !important;
+    margin-left:auto !important;
+  }
+  body.staff-logged .nav-pill.signup-nav,
+  body.staff-logged #nav-login-btn{
+    display:none !important;
+  }
+  body.staff-logged #dash-content,
+  body.staff-logged #dash-content .dash-grid{
+    display:block !important;
+    width:100% !important;
+    min-height:calc(100vh - 76px) !important;
+    background:var(--mk-soft,#0f1210) !important;
+  }
+  body.staff-logged .dash-main{
+    width:100% !important;
+    min-height:calc(100vh - 76px) !important;
+    padding:42px 56px 80px !important;
+    background:var(--mk-soft,#0f1210) !important;
+  }
+  body.staff-logged .staff-lite-wrap{
+    width:min(1180px, calc(100vw - 112px)) !important;
+    max-width:none !important;
+    margin:0 auto !important;
+    padding:0 !important;
+    display:grid !important;
+    grid-template-columns:minmax(280px, .42fr) minmax(520px, 1fr) !important;
+    gap:22px !important;
+    align-items:start !important;
+  }
+  body.staff-logged .staff-lite-card{
+    width:100% !important;
+    min-width:0 !important;
+    margin:0 !important;
+    border-radius:28px !important;
+    padding:24px !important;
+    background:var(--mk-panel,#171b18) !important;
+    border:1px solid var(--mk-border,rgba(255,255,255,.14)) !important;
+  }
+  body.staff-logged .staff-lite-card:first-child{
+    grid-row:span 2 !important;
+    position:sticky !important;
+    top:104px !important;
+  }
+  body.staff-logged .staff-lite-title{
+    font-size:34px !important;
+    line-height:1.05 !important;
+    word-break:normal !important;
+    overflow-wrap:normal !important;
+  }
+  body.staff-logged .staff-lite-sub{
+    font-size:15px !important;
+    line-height:1.55 !important;
+    max-width:520px !important;
+  }
+  body.staff-logged .finance-section-title{
+    font-size:25px !important;
+    line-height:1.15 !important;
+  }
+  body.staff-logged .staff-lite-row{
+    display:flex !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    gap:18px !important;
+    padding:16px 0 !important;
+  }
+  body.staff-logged .staff-lite-actions{
+    justify-content:flex-end !important;
+    flex-shrink:0 !important;
+  }
+  body.staff-logged .finance-form-row{
+    display:grid !important;
+    grid-template-columns:1fr 180px !important;
+    gap:12px !important;
+  }
+}
+</style>
+<script id="mkass-staff-desktop-dashboard-fix-js">
+(function(){
+  const oldShowStaffLiteDashboard = window.showStaffLiteDashboard;
+  if(typeof oldShowStaffLiteDashboard === 'function'){
+    window.showStaffLiteDashboard = async function showStaffLiteDashboardDesktopFixed(){
+      const result = await oldShowStaffLiteDashboard.apply(this, arguments);
+      document.body.classList.add('staff-logged');
+      document.querySelector('.nav-pill.signup-nav')?.style.setProperty('display','none','important');
+      document.getElementById('nav-login-btn')?.style.setProperty('display','none','important');
+      return result;
+    };
+  }
+})();
+</script>
+
+
+<style id="mkass-cahier-anomalies-fix-css">
+.note-line{margin-top:4px;color:var(--mk-soft-text,#656760);font-size:11px;line-height:1.35;white-space:normal;max-width:220px}
+.admin-status-row{display:flex;gap:5px;flex-wrap:wrap}
+</style>
+<script id="mkass-cahier-anomalies-fix-js">
+(function(){
+  function dateKey(v){ return String(v || '').slice(0,10); }
+  function money(v){ return Number(v || 0); }
+  function safeServices(a){ return Array.isArray(a?.services) ? a.services : (a?.services ? [a.services] : []); }
+
+  // MK-TC-004: dropdown choice must not auto-search. Search only on button click or Enter.
+  window.selectService = function selectServiceNoAutoSearch(query,label){
+    const inp=document.getElementById('search-inp');
+    if(inp) inp.value = label || query || 'Tous les soins';
+    if(typeof closeServiceMenu === 'function') closeServiceMenu();
+  };
+
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' && (e.target?.id === 'search-inp' || e.target?.id === 'location-inp')){
+      e.preventDefault();
+      if(typeof renderShops === 'function') renderShops();
+      if(typeof closeServiceMenu === 'function') closeServiceMenu();
+      if(typeof closeLocationMenu === 'function') closeLocationMenu();
+    }
+  });
+
+  document.addEventListener('click', function(e){
+    if(e.target?.classList?.contains('mk-search-btn')){
+      if(typeof renderShops === 'function') renderShops();
+    }
+  });
+
+  // MK-TC-020: show client note in gerant/personnel appointment rows.
+  window.aRow = function aRowWithNote(a,showDate){
+    const clientName = a.client || a.client_name || 'Client';
+    const init=String(clientName).split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() || '?';
+    const col=(window.AV_COLS || ['#1ba640'])[String(a.id || '').slice(-1).charCodeAt(0) % (window.AV_COLS || ['#1ba640']).length];
+    const dl = showDate ? `<td>${typeof formatDate === 'function' ? formatDate(a.date) : dateKey(a.date)}</td>` : '';
+    const svcStr=safeServices(a).join(', ') || '—';
+    const typePill=a.type==='walkin'?`<span class="badge badge-done" style="margin-left:4px;font-size:10px">Walk-in</span>`:'';
+    const note = String(a.note || a.customer_note || '').trim();
+    const staff = a.staffName || a.staff_name || '';
+    const statusMap = window.STATUS || {confirmed:'Confirmé',pending:'En attente',done:'Terminé',cancelled:'Annulé',no_show:'Absent'};
+    return`<tr>
+      <td><div class="av-cell"><div class="av" style="background:${col}">${init}</div><div><div class="cl-name">${clientName}${typePill}</div><div class="cl-ph">${a.phone||a.client_phone||''}${staff ? ' · '+staff : ''}</div>${note ? `<div class="note-line"><strong>Note:</strong> ${note}</div>` : ''}</div></div></td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${svcStr}</td>
+      ${dl}
+      <td>${a.time||'—'}</td>
+      <td><strong>${money(a.total)} TND</strong></td>
+      <td><span class="badge badge-${a.status}">${statusMap[a.status]||a.status}</span></td>
+      <td>
+        ${a.status==='pending'?`<button class="ab ok" onclick="chSt('${a.id}','confirmed')">✓</button>`:''}
+        ${a.status!=='done'&&a.status!=='cancelled'?`<button class="ab ok" onclick="chSt('${a.id}','done')">Terminé</button>`:''}
+        ${a.status!=='cancelled'&&a.status!=='done'?`<button class="ab bad" onclick="chSt('${a.id}','cancelled')">✗</button>`:''}
+        ${a.status!=='cancelled'&&a.status!=='done'&&a.status!=='no_show'?`<button class="ab bad" onclick="chSt('${a.id}','no_show')">Absent</button>`:''}
+      </td></tr>`;
+  };
+
+  // MK-TC-036: after cancel/status change, reload appointments and refresh slots.
+  window.chSt = async function chStRefreshSlots(id, st){
+    const a = (window.appointments || appointments || []).find(x=>String(x.id)===String(id));
+    if(!a) return;
+    try{
+      await apiCall('PATCH', `/salons/${a.salonId}/appointments/${id}/status`, { status: st }, true);
+      a.status = st;
+      if(typeof loadOwnerAppointments === 'function' && loggedSalonId && loggedSalonId !== '__admin__'){
+        await loadOwnerAppointments();
+      }
+      if(typeof renderDToday === 'function') renderDToday();
+      if(typeof renderDAll === 'function') renderDAll();
+      if(typeof renderBalance === 'function') renderBalance();
+      if(typeof renderWiHist === 'function') renderWiHist();
+      if(typeof renderSlots === 'function' && typeof selDate !== 'undefined' && selDate && (typeof selSalonId === 'undefined' || !selSalonId || String(selSalonId)===String(a.salonId))){
+        await renderSlots();
+      }
+      toast('Statut mis à jour');
+    }catch(err){
+      toast(err.message || 'Erreur statut');
+    }
+  };
+
+  // MK-TC-037: payments today should include walk-ins and bookings done today, regardless date format returned by API.
+  window.renderWiHist = function renderWiHistFixed(){
+    const body=document.getElementById('wi-hist-tb'); if(!body) return;
+    const today=todayStr();
+    const rows=(typeof myAppts === 'function' ? myAppts() : (appointments||[])).filter(a=>dateKey(a.date || a.appt_date)===today && a.status==='done');
+    const payIcon={cash:'💵',card:'💳',transfer:'📱',online:'🌐'};
+    body.innerHTML=rows.length?rows.map(a=>`
+      <tr>
+        <td>${a.client || a.client_name || 'Client'}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${safeServices(a).join(', ') || '—'}</td>
+        <td>${a.time || String(a.appt_time || '').slice(0,5) || '—'}</td>
+        <td><strong style="color:var(--success)">+${money(a.total)} TND</strong></td>
+        <td>${payIcon[a.payMode || a.pay_mode]||''} ${a.payMode || a.pay_mode || 'en ligne'}</td>
+        <td><span class="badge ${a.type==='walkin'?'badge-done':'badge-confirmed'}">${a.type==='walkin'?'Walk-in':'Réservation'}</span></td>
+      </tr>`).join(''):'<tr class="empty-row"><td colspan="6">Aucun paiement aujourd\'hui</td></tr>';
+  };
+
+  // Make walk-in save reload authoritative backend data before rendering payments.
+  const previousAddWalkin = window.addWalkin;
+  if(typeof previousAddWalkin === 'function'){
+    window.addWalkin = async function addWalkinReloadAfterSave(){
+      await previousAddWalkin.apply(this, arguments);
+      try{ if(typeof loadOwnerAppointments === 'function') await loadOwnerAppointments(); }catch(e){}
+      if(typeof renderWiHist === 'function') renderWiHist();
+      if(typeof renderDToday === 'function') renderDToday();
+      if(typeof renderBalance === 'function') renderBalance();
+    };
+  }
+
+  // MK-TC-043: admin can select any salon and edit its settings/services using admin token.
+  window.adminManageSalon = async function adminManageSalon(id){
+    const s=(SALONS||[]).find(x=>String(x.id)===String(id));
+    if(!s){ toast('Salon introuvable'); return; }
+    loggedSalonId = s.id;
+    try{ if(typeof loadServicesForSalon === 'function') await loadServicesForSalon(s.id); }catch(e){}
+    try{ if(typeof loadOwnerAppointments === 'function') await loadOwnerAppointments(); }catch(e){}
+    if(typeof showDash === 'function') showDash();
+    const btn=[...document.querySelectorAll('.sb-btn')].find(b=>String(b.textContent||'').includes('Param'));
+    if(typeof swTab === 'function') swTab(btn || document.querySelector('.sb-btn'), 'dt-settings');
+    if(typeof loadSettings === 'function') loadSettings();
+    toast('Admin: modification du salon '+s.name);
+  };
+
+  const previousAdminTable = window.renderAdminTable;
+  window.renderAdminTable = function renderAdminTableWithManage(){
+    if(!isAdmin) return;
+    const tb=document.getElementById('admin-salons-tb'); if(!tb) return;
+    tb.innerHTML=(SALONS||[]).map(s=>{
+      const cnt=(appointments||[]).filter(a=>String(a.salonId)===String(s.id)).length;
+      const plan=String(s.plan || 'starter').toLowerCase();
+      const sub=String(s.subscription_status || s.subscriptionStatus || 'active').toLowerCase();
+      return `<tr><td><div class="av-cell"><div style="font-size:20px">${s.icon || '✂️'}</div><div><div class="cl-name">${s.name}</div><div class="cl-ph">${s.username || s.id}</div></div></div></td><td><select class="admin-plan-select" onchange="adminSetPlan('${s.id}',this.value)"><option value="starter" ${plan==='starter'?'selected':''}>Starter</option><option value="pro" ${plan==='pro'?'selected':''}>Pro</option></select></td><td><span class="badge ${sub==='active'?'badge-confirmed':'badge-pending'}">${sub}</span></td><td>${cnt}</td><td><div class="admin-status-row"><button class="ab ok" onclick="adminManageSalon('${s.id}')">Gérer</button><button class="ab ok" onclick="adminSetSubscription('${s.id}','active')">Débloquer</button><button class="ab bad" onclick="adminSetSubscription('${s.id}','past_due')">Bloquer paiement</button><button class="ab bad" onclick="removeSalon('${s.id}')">Supprimer</button></div></td></tr>`;
+    }).join('');
+  };
+})();
+</script>
+
+
+<!-- MKASS BROWSER PUSH NOTIFICATIONS - TEST UI FIX -->
+<style id="mkass-browser-push-css">
+.mkass-push-btn{position:relative;display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--border2);background:transparent;color:var(--gray);border-radius:var(--rs);padding:7px 13px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .16s ease;white-space:nowrap}
+.mkass-push-btn:hover{border-color:var(--lime);color:var(--lime);background:var(--lime-dim)}
+.mkass-push-btn.is-on{background:var(--lime);border-color:var(--lime);color:var(--ink)}
+.mkass-push-btn.is-waiting{opacity:.65;pointer-events:none}
+.mkass-push-dot{width:7px;height:7px;border-radius:50%;background:var(--gray2);box-shadow:0 0 0 0 rgba(200,255,0,.28)}
+.mkass-push-btn.is-on .mkass-push-dot{background:var(--ink);animation:mkassPushPulse 1.7s infinite}
+@keyframes mkassPushPulse{0%{box-shadow:0 0 0 0 rgba(200,255,0,.35)}70%{box-shadow:0 0 0 8px rgba(200,255,0,0)}100%{box-shadow:0 0 0 0 rgba(200,255,0,0)}}
+.mkass-notification-stack{position:fixed;right:18px;bottom:104px;z-index:200000;display:grid;gap:10px;width:min(380px,calc(100vw - 32px));pointer-events:none}
+.mkass-notification-card{background:var(--ink2);border:1px solid var(--border2);border-left:4px solid var(--lime);border-radius:var(--r);box-shadow:0 18px 60px rgba(0,0,0,.38);padding:13px 14px;color:var(--white);font-family:'Plus Jakarta Sans','Plus Jakarta Sans',sans-serif;transform:translateY(16px);opacity:0;animation:mkassNotifyIn .22s ease forwards}
+@keyframes mkassNotifyIn{to{transform:translateY(0);opacity:1}}
+.mkass-notification-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}.mkass-notification-title{display:flex;align-items:center;gap:8px;font-family:'Plus Jakarta Sans','Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:800;letter-spacing:-.04em;color:var(--white)}.mkass-notification-mark{width:26px;height:26px;border-radius:7px;background:var(--lime);display:flex;align-items:center;justify-content:center;flex:0 0 auto}.mkass-notification-mark svg{width:16px;height:16px}.mkass-notification-time{font-family:'Plus Jakarta Sans',sans-serif;font-size:10px;font-weight:700;color:var(--gray);white-space:nowrap}.mkass-notification-body{padding-left:34px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;line-height:1.45;color:var(--gray)}.mkass-notification-body strong{color:var(--white);font-family:'Plus Jakarta Sans','Plus Jakarta Sans',sans-serif;font-weight:800;letter-spacing:-.03em}
+.mkass-push-floating{position:fixed;right:16px;bottom:72px;z-index:99990;background:var(--ink2);box-shadow:0 14px 45px rgba(0,0,0,.25)}
+@media(max-width:640px){.mkass-notification-stack{left:12px;right:12px;bottom:104px;width:auto}.mkass-push-btn{padding:7px 10px;font-size:11px}.mkass-push-floating{right:12px;bottom:72px}}
+</style>
+
+<script id="mkass-auto-login-session-js">
+(function(){
+  const SESSION_DAYS = 30;
+  const EXPIRES_KEY = 'mkass_auth_expires_at';
+  const AUTH_KEYS = [
+    'mkass_auth_token','mkass_auth_role','mkass_salon_id','mkass_salon_name',
+    'mkass_staff_id','mkass_staff_name','mkass_subscription_status','mkass_salon_plan',
+    EXPIRES_KEY
+  ];
+
+  function now(){ return Date.now(); }
+  function freshExpiry(){ return now() + SESSION_DAYS * 24 * 60 * 60 * 1000; }
+  function safeToast(msg){ try { if(typeof toast === 'function') toast(msg); } catch(e){} }
+
+  window.mkassClearSavedSession = function mkassClearSavedSession(){
+    try { AUTH_KEYS.forEach(k => localStorage.removeItem(k)); localStorage.removeItem('mkass_push_enabled'); } catch(e){}
+  };
+
+  function hasValidSavedSession(){
+    const token = localStorage.getItem('mkass_auth_token');
+    const role = localStorage.getItem('mkass_auth_role');
+    const salonId = localStorage.getItem('mkass_salon_id');
+    if(!token || !role) return false;
+    if(role !== 'admin' && !salonId) return false;
+    let expiresAt = Number(localStorage.getItem(EXPIRES_KEY) || 0);
+    // Older Mkass sessions had no expiry; upgrade them once to the safer 30-day session.
+    if(!expiresAt){ expiresAt = freshExpiry(); localStorage.setItem(EXPIRES_KEY, String(expiresAt)); }
+    if(expiresAt <= now()){ window.mkassClearSavedSession(); return false; }
+    return true;
+  }
+
+  window.mkassRefreshSavedSession = function mkassRefreshSavedSession(){
+    try{
+      if(localStorage.getItem('mkass_auth_token') && localStorage.getItem('mkass_auth_role')){
+        localStorage.setItem(EXPIRES_KEY, String(freshExpiry()));
+      }
+    }catch(e){}
+  };
+
+  window.mkassRestoreSavedSession = async function mkassRestoreSavedSession(){
+    if(!hasValidSavedSession()) return false;
+    try{
+      authToken = localStorage.getItem('mkass_auth_token') || null;
+      authRole = localStorage.getItem('mkass_auth_role') || null;
+      authSalonId = localStorage.getItem('mkass_salon_id') || null;
+      authSalonName = localStorage.getItem('mkass_salon_name') || null;
+      isAdmin = authRole === 'admin';
+      loggedSalonId = isAdmin ? '__admin__' : authSalonId;
+      window.authToken = authToken;
+      window.authRole = authRole;
+      window.authSalonId = authSalonId;
+      window.authSalonName = authSalonName;
+      window.isAdmin = isAdmin;
+      window.loggedSalonId = loggedSalonId;
+
+      if(authRole === 'staff'){
+        window.mkassStaffId = localStorage.getItem('mkass_staff_id') || null;
+        window.mkassStaffName = localStorage.getItem('mkass_staff_name') || authSalonName || 'Personnel';
+        if(typeof showView === 'function') showView('dashboard');
+        if(typeof showStaffLiteDashboard === 'function') await showStaffLiteDashboard();
+      } else {
+        if(isAdmin && typeof loadAdminData === 'function') await loadAdminData();
+        else if(typeof loadOwnerAppointments === 'function') await loadOwnerAppointments();
+        if(typeof showView === 'function') showView('dashboard');
+        if(typeof showDash === 'function') showDash();
+      }
+
+      window.mkassRefreshSavedSession();
+      setTimeout(function(){ try{ if(typeof mkassInstallPushButton === 'function') mkassInstallPushButton(); }catch(e){} }, 250);
+      return true;
+    }catch(err){
+      console.warn('Mkass auto-login skipped:', err);
+      return false;
+    }
+  };
+
+  const previousTryLogin = window.tryLogin;
+  if(typeof previousTryLogin === 'function' && !previousTryLogin.__mkassAutoLoginWrapped){
+    const wrappedTryLogin = async function(){
+      const result = await previousTryLogin.apply(this, arguments);
+      try{
+        if(authToken && authRole){
+          localStorage.setItem(EXPIRES_KEY, String(freshExpiry()));
+          if(window.mkassStaffId) localStorage.setItem('mkass_staff_id', window.mkassStaffId || '');
+          if(window.mkassStaffName) localStorage.setItem('mkass_staff_name', window.mkassStaffName || '');
+        }
+      }catch(e){}
+      return result;
+    };
+    wrappedTryLogin.__mkassAutoLoginWrapped = true;
+    window.tryLogin = wrappedTryLogin;
+  }
+
+  const previousLogout = window.logout;
+  window.logout = function(){
+    window.mkassClearSavedSession();
+    try { authToken=null; authRole=null; authSalonId=null; authSalonName=null; } catch(e){}
+    try { window.authToken=null; window.authRole=null; window.authSalonId=null; window.authSalonName=null; } catch(e){}
+    if(typeof previousLogout === 'function') return previousLogout.apply(this, arguments);
+    try { location.reload(); } catch(e){}
+  };
+
+  window.addEventListener('load', function(){
+    // Wait for public salon data to load so showDash() can render the correct salon name and dashboard.
+    setTimeout(function(){ window.mkassRestoreSavedSession(); }, 1100);
+  });
+})();
+</script>
+
+<script id="mkass-browser-push-js">
+(function mkassBrowserPush(){
+  const SCISSORS_SVG = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="6" cy="6" r="3" stroke="#0A0A0A" stroke-width="2"/><circle cx="6" cy="18" r="3" stroke="#0A0A0A" stroke-width="2"/><path d="M8.5 8.5L20 20" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round"/><path d="M8.5 15.5L20 4" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round"/></svg>';
+
+  function pushToast(msg){ if (typeof toast === 'function') toast(msg); else console.log(msg); }
+  function hasToken(){ try { return !!(authToken || localStorage.getItem('mkass_auth_token')); } catch(e){ return !!localStorage.getItem('mkass_auth_token'); } }
+  function getSalonForPush(){ try { return authSalonId || loggedSalonId || localStorage.getItem('mkass_salon_id'); } catch(e){ return localStorage.getItem('mkass_salon_id'); } }
+
+  function ensureStack(){
+    let stack = document.getElementById('mkass-notification-stack');
+    if(!stack){ stack = document.createElement('div'); stack.id = 'mkass-notification-stack'; stack.className = 'mkass-notification-stack'; document.body.appendChild(stack); }
+    return stack;
+  }
+  function escapeHtml(v){ return String(v ?? '').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  window.mkassShowInAppNotification = function mkassShowInAppNotification(title, body){
+    const stack = ensureStack();
+    const card = document.createElement('div');
+    card.className = 'mkass-notification-card';
+    card.innerHTML = `<div class="mkass-notification-head"><div class="mkass-notification-title"><span class="mkass-notification-mark">${SCISSORS_SVG}</span>${escapeHtml(title || 'Mkass')}</div><div class="mkass-notification-time">maintenant</div></div><div class="mkass-notification-body">${escapeHtml(body || 'Nouvelle notification')}</div>`;
+    stack.prepend(card);
+    while(stack.children.length > 3) stack.lastElementChild.remove();
+    setTimeout(()=>{ card.style.opacity='0'; card.style.transform='translateY(12px)'; setTimeout(()=>card.remove(),260); }, 6500);
+  };
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+    return outputArray;
+  }
+
+  function isPushOn(){ return localStorage.getItem('mkass_push_enabled') === 'true' && typeof Notification !== 'undefined' && Notification.permission === 'granted'; }
+
+  window.mkassEnableBrowserPush = async function mkassEnableBrowserPush(btn){
+    try {
+      btn = btn || document.getElementById('mkass-push-btn') || document.getElementById('mkass-staff-push-btn') || document.getElementById('mkass-push-floating-btn');
+      if(btn){ btn.classList.add('is-waiting'); btn.disabled = true; }
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) { pushToast('Notifications navigateur non supportées sur cet appareil'); return; }
+      if (typeof apiCall !== 'function' || typeof API === 'undefined') { pushToast('API Mkass non disponible'); return; }
+      if (!hasToken()) { pushToast('Connectez-vous avant d’activer les notifications'); return; }
+      const cfg = await apiCall('GET', '/push/public-key');
+      if (!cfg?.enabled || !cfg?.publicKey) { pushToast('Notifications non configurées sur Railway'); return; }
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') { pushToast('Notifications refusées par le navigateur'); return; }
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(cfg.publicKey) });
+      }
+      await apiCall('POST', '/push/subscribe', { salonId:getSalonForPush(), subscription }, true);
+      localStorage.setItem('mkass_push_enabled', 'true');
+      pushToast('Alertes activées');
+      window.mkassShowInAppNotification('Alertes activées', 'Vous recevrez les alertes de réservation, walk-in et changements de statut.');
+      mkassInstallPushButton();
+    } catch (err) {
+      console.error('Mkass push error:', err);
+      pushToast(err.message || 'Erreur activation notifications');
+    } finally {
+      if(btn){ btn.classList.remove('is-waiting'); btn.disabled = false; }
+      mkassInstallPushButton();
+    }
+  };
+
+  function makeButton(id, floating){
+    const btn = document.createElement('button');
+    btn.id = id; btn.type = 'button';
+    btn.className = 'mkass-push-btn' + (floating ? ' mkass-push-floating' : '') + (isPushOn() ? ' is-on' : '');
+    btn.onclick = function(){ window.mkassEnableBrowserPush(btn); };
+    btn.innerHTML = `<span class="mkass-push-dot"></span>${isPushOn() ? 'Alertes activées' : 'Activer notifications'}`;
+    return btn;
+  }
+
+  window.mkassInstallPushButton = function mkassInstallPushButton(){
+    const shouldShow = hasToken();
+    ['mkass-push-btn','mkass-staff-push-btn','mkass-push-floating-btn'].forEach(id=>{ const b=document.getElementById(id); if(b && !shouldShow) b.remove(); });
+    if(!shouldShow) return;
+
+    const dashboardHeaderActions = document.querySelector('#dt-today .dash-hdr > div:last-child') || document.querySelector('.dash-hdr > div:last-child');
+    if (dashboardHeaderActions && !document.getElementById('mkass-push-btn')) dashboardHeaderActions.prepend(makeButton('mkass-push-btn'));
+
+    const staffCard = document.querySelector('.staff-lite-wrap .staff-lite-card:first-child');
+    if(staffCard && !document.getElementById('mkass-staff-push-btn')){
+      const holder = document.createElement('div'); holder.style.marginTop = '10px'; holder.appendChild(makeButton('mkass-staff-push-btn')); staffCard.appendChild(holder);
+    }
+
+    if(!document.getElementById('mkass-push-btn') && !document.getElementById('mkass-staff-push-btn') && !document.getElementById('mkass-push-floating-btn')){
+      document.body.appendChild(makeButton('mkass-push-floating-btn', true));
+    }
+
+    ['mkass-push-btn','mkass-staff-push-btn','mkass-push-floating-btn'].forEach(id=>{
+      const b=document.getElementById(id); if(!b) return;
+      b.className = b.className.replace(/\bis-on\b/g,'').trim() + (isPushOn() ? ' is-on' : '');
+      b.innerHTML = `<span class="mkass-push-dot"></span>${isPushOn() ? 'Alertes activées' : 'Activer notifications'}`;
+    });
+  };
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if(event.data?.type === 'MKASS_PUSH_NOTIFICATION') window.mkassShowInAppNotification(event.data.title, event.data.body);
+    });
+  }
+
+  const oldShowDash = window.showDash;
+  if (typeof oldShowDash === 'function' && !oldShowDash.__mkassPushWrapped) {
+    const wrapped = function(){ const result = oldShowDash.apply(this, arguments); setTimeout(window.mkassInstallPushButton, 150); return result; };
+    wrapped.__mkassPushWrapped = true; window.showDash = wrapped;
+  }
+  const oldStaffLite = window.showStaffLiteDashboard;
+  if(typeof oldStaffLite === 'function' && !oldStaffLite.__mkassPushWrapped){
+    const wrappedStaff = async function(){ const result = await oldStaffLite.apply(this, arguments); setTimeout(window.mkassInstallPushButton, 150); return result; };
+    wrappedStaff.__mkassPushWrapped = true; window.showStaffLiteDashboard = wrappedStaff;
+  }
+  window.addEventListener('load', () => { setTimeout(window.mkassInstallPushButton, 700); setInterval(window.mkassInstallPushButton, 3000); });
+})();
+</script>
+
+
+<script id="mkass-pwa-native-polish-js">
+(function(){
+  window.MKASS_PWA_VERSION = 'pwa-polish-1';
+  let deferredInstallPrompt = null;
+
+  function haptic(ms){
+    try{ if(navigator.vibrate) navigator.vibrate(ms || 12); }catch(e){}
+  }
+  window.mkassHaptic = haptic;
+
+  window.addEventListener('pointerup', function(e){
+    if(e.target && e.target.closest && e.target.closest('button,.btn,.ntab,.chip,.book-btn,.slot,.staff-choice,.mkass-push-btn,.mkass-push-floating')) haptic(8);
+  }, {passive:true});
+
+  function setThemeColor(){
+    const isDark = document.documentElement.classList.contains('dark') || document.body.classList.contains('dark');
+    const color = isDark ? '#101010' : '#f7f6f1';
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.setAttribute('content', color));
+  }
+  setThemeColor();
+  new MutationObserver(setThemeColor).observe(document.documentElement,{attributes:true,attributeFilter:['class']});
+
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    document.body.classList.add('mkass-install-ready');
+  });
+
+  window.mkassInstallPwa = async function(){
+    haptic(18);
+    if(deferredInstallPrompt){
+      deferredInstallPrompt.prompt();
+      try{ await deferredInstallPrompt.userChoice; }catch(e){}
+      deferredInstallPrompt = null;
+      document.body.classList.remove('mkass-install-ready');
+      return;
+    }
+    if(navigator.share){
+      try{
+        await navigator.share({title:'Mkass',text:'Réservez et gérez vos rendez-vous salon avec Mkass.',url:location.origin});
+        return;
+      }catch(e){}
+    }
+    if(typeof toast==='function') toast('Pour installer Mkass: menu du navigateur puis “Ajouter à l’écran d’accueil”.');
+    else alert('Pour installer Mkass: menu du navigateur puis “Ajouter à l’écran d’accueil”.');
+  };
+
+  window.mkassShareCurrentPage = async function(title, text, url){
+    haptic(14);
+    const payload = { title: title || 'Mkass', text: text || 'Découvrez Mkass', url: url || location.href };
+    if(navigator.share){
+      try{ await navigator.share(payload); return true; }catch(e){ return false; }
+    }
+    try{ await navigator.clipboard.writeText(payload.url); if(typeof toast==='function') toast('Lien copié'); return true; }catch(e){}
+    return false;
+  };
+
+  document.addEventListener('click', function(e){
+    const install = e.target.closest && e.target.closest('.mk-download,[data-mkass-install]');
+    if(install){ e.preventDefault(); window.mkassInstallPwa(); return; }
+    const share = e.target.closest && e.target.closest('[data-mkass-share]');
+    if(share){ e.preventDefault(); window.mkassShareCurrentPage(share.getAttribute('data-share-title'), share.getAttribute('data-share-text'), share.getAttribute('data-share-url')); }
+  });
+
+  // Keep existing push notification service worker active; the service worker also powers PWA install/offline shell.
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('/sw.js').catch(function(err){ console.warn('Mkass service worker registration skipped:', err); });
+    });
+  }
+})();
+</script>
+
+
+
+<script id="mkass-polished-custom-selects-js">
+(function(){
+  function escHtml(v){return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+
+  function closeAll(except){
+    document.querySelectorAll('.mkass-select-shell.open').forEach(shell=>{
+      if(shell !== except) shell.classList.remove('open');
+    });
+  }
+
+  function selectedText(select){
+    const opt = select.options[select.selectedIndex] || select.options[0];
+    return opt ? opt.textContent.trim() : '';
+  }
+
+  function syncShell(select){
+    const shell = select._mkassSelectShell;
+    if(!shell) return;
+    shell.classList.toggle('disabled', !!select.disabled);
+    const value = shell.querySelector('.mkass-select-value');
+    if(value) value.textContent = selectedText(select) || 'Choisir';
+    const menu = shell.querySelector('.mkass-select-menu');
+    if(!menu) return;
+    menu.innerHTML = Array.from(select.options).map((opt, idx)=>{
+      const selected = idx === select.selectedIndex || opt.value === select.value;
+      return `<button type="button" class="mkass-select-option ${selected ? 'selected' : ''}" data-value="${escHtml(opt.value)}" data-index="${idx}">${escHtml(opt.textContent.trim())}</button>`;
+    }).join('') || '<div class="mkass-select-option" style="pointer-events:none;opacity:.65">Aucune option</div>';
+  }
+
+  function enhanceSelect(select){
+    if(!select || select.dataset.mkassSelectEnhanced === '1') return;
+    if(select.closest('.mkass-select-shell')) return;
+
+    select.dataset.mkassSelectEnhanced = '1';
+    select.classList.add('mkass-select-native-hidden');
+
+    const shell = document.createElement('div');
+    shell.className = 'mkass-select-shell';
+    shell.innerHTML = `<button type="button" class="mkass-select-trigger" aria-haspopup="listbox" aria-expanded="false"><span class="mkass-select-value"></span><span class="mkass-select-chevron" aria-hidden="true"></span></button><div class="mkass-select-menu" role="listbox"></div>`;
+    select.insertAdjacentElement('afterend', shell);
+    select._mkassSelectShell = shell;
+    shell._mkassNativeSelect = select;
+
+    const trigger = shell.querySelector('.mkass-select-trigger');
+    const menu = shell.querySelector('.mkass-select-menu');
+
+    trigger.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      syncShell(select);
+      const willOpen = !shell.classList.contains('open');
+      closeAll(shell);
+      shell.classList.toggle('open', willOpen);
+      trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+
+    menu.addEventListener('click', function(e){
+      const btn = e.target.closest('.mkass-select-option');
+      if(!btn || btn.style.pointerEvents === 'none') return;
+      e.preventDefault();
+      e.stopPropagation();
+      const idx = Number(btn.dataset.index);
+      if(Number.isInteger(idx) && select.options[idx]){
+        select.selectedIndex = idx;
+      }else{
+        select.value = btn.dataset.value;
+      }
+      syncShell(select);
+      shell.classList.remove('open');
+      trigger.setAttribute('aria-expanded','false');
+      select.dispatchEvent(new Event('input', {bubbles:true}));
+      select.dispatchEvent(new Event('change', {bubbles:true}));
+    });
+
+    select.addEventListener('change', ()=>syncShell(select));
+    select.addEventListener('input', ()=>syncShell(select));
+
+    const mo = new MutationObserver(()=>syncShell(select));
+    mo.observe(select, {childList:true, subtree:true, attributes:true, attributeFilter:['disabled','value','selected']});
+    select._mkassSelectObserver = mo;
+
+    syncShell(select);
+  }
+
+  function enhanceAllSelects(){
+    document.querySelectorAll('select').forEach(enhanceSelect);
+  }
+
+  document.addEventListener('click', function(e){
+    if(!e.target.closest('.mkass-select-shell')) closeAll();
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') closeAll();
+  });
+
+  window.refreshMkassSelects = function(){
+    enhanceAllSelects();
+    document.querySelectorAll('select').forEach(syncShell);
+  };
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', enhanceAllSelects);
+  }else{
+    enhanceAllSelects();
+  }
+
+  // Some Mkass panels build selects dynamically after login/render.
+  const bodyObserver = new MutationObserver(()=>{
+    clearTimeout(window.__mkassSelectRefreshTimer);
+    window.__mkassSelectRefreshTimer = setTimeout(enhanceAllSelects, 60);
+  });
+  bodyObserver.observe(document.documentElement, {childList:true, subtree:true});
+
+  // Keep labels synced when existing code changes select.value programmatically.
+  setInterval(()=>document.querySelectorAll('select').forEach(syncShell), 900);
+})();
+</script>
+
+
+
+
+
+<style id="mkass-single-mobile-salon-menu-final-css">
+/* FINAL: only one mobile Salon screen. It removes the old duplicated salon hub behavior. */
+#dt-salon-menu-final{display:none;}
+#dt-salon-menu-final.active{display:block;}
+.mkass-salon-menu-final{max-width:980px;margin:0 auto;padding:0 0 120px;color:var(--mk-text,#101010);font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;}
+.mkass-salon-menu-final-head{padding:4px 0 14px;}
+.mkass-salon-menu-final-kicker{font-size:12px;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:#1ba640;margin-bottom:8px;}
+.mkass-salon-menu-final-title{font-size:36px;line-height:1;letter-spacing:-.055em;font-weight:900;color:var(--mk-text,#101010);margin-bottom:8px;}
+.mkass-salon-menu-final-sub{font-size:14px;line-height:1.55;color:var(--mk-soft-text,#656760);margin-bottom:16px;}
+.mkass-salon-menu-final-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+.mkass-salon-menu-final-card{width:100%;border:1px solid var(--mk-border,#dedbd2);background:var(--mk-panel,#fff);border-radius:24px;padding:18px;min-height:116px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;text-align:left;color:var(--mk-text,#101010);box-shadow:var(--mk-shadow,0 18px 48px rgba(16,16,16,.07));cursor:pointer;font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;}
+.mkass-salon-menu-final-card h3{font-size:21px;line-height:1.1;letter-spacing:-.04em;font-weight:900;margin:0 0 7px;color:var(--mk-text,#101010);font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;}
+.mkass-salon-menu-final-card p{font-size:13px;line-height:1.42;color:var(--mk-soft-text,#656760);margin:0;font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;}
+.mkass-salon-menu-final-pill{display:inline-flex;width:max-content;max-width:100%;margin-bottom:9px;padding:6px 10px;border-radius:999px;background:rgba(27,166,64,.12);color:#1ba640;font:900 11px/1 Inter,Arial,sans-serif;}
+.mkass-salon-menu-final-arrow{width:38px;height:38px;min-width:38px;border-radius:999px;background:rgba(27,166,64,.12);color:#1ba640;display:grid;place-items:center;font-size:24px;font-weight:900;margin-top:auto;}
+.mkass-salon-menu-final-logout{border-color:rgba(255,107,107,.28)!important;background:rgba(255,107,107,.06)!important;}
+.mkass-salon-menu-final-logout .mkass-salon-menu-final-arrow{background:rgba(255,107,107,.12);color:#e55353;}
+html.dark .mkass-salon-menu-final-title,html.dark .mkass-salon-menu-final-card h3{color:#f6f6f1!important;}
+html.dark .mkass-salon-menu-final-card{background:var(--mk-panel,#171b18);border-color:var(--mk-border,rgba(255,255,255,.14));box-shadow:none;}
+@media(max-width:900px){
+  #dt-salon-menu-final{padding:4px 0 118px!important;}
+  .mkass-salon-menu-final-title{font-size:34px;}
+  .mkass-salon-menu-final-grid{grid-template-columns:1fr;gap:12px;}
+  .mkass-salon-menu-final-card{min-height:104px;border-radius:22px;padding:16px;box-shadow:none;}
+  .mkass-salon-menu-final-card h3{font-size:21px;}
+}
+</style>
+<script id="mkass-single-mobile-salon-menu-final-js">
+(function(){
+  function esc(v){return String(v ?? '').replace(/[&<>\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c] || c;});}
+  function isOwner(){
+    return Boolean(window.loggedSalonId || window.isAdmin || document.body.classList.contains('admin-logged'));
+  }
+  function activateBottom(id){
+    document.querySelectorAll('.ntab').forEach(function(e){e.classList.remove('active');});
+    document.getElementById(id)?.classList.add('active');
+  }
+  function removeOldMenus(){
+    ['dt-salon-hub','dt-mobile-salon-menu'].forEach(function(id){
+      const el=document.getElementById(id);
+      if(el) el.remove();
+    });
   }
   function card(id,title,desc,pill){
-    const locked = PRO_IDS.has(id) && !isPro();
-    const pillHtml = pill ? '<span class="mkass-salon-menu-final-pill">'+esc(pill)+'</span>' : '';
-    return '<button type="button" class="mkass-salon-menu-final-card '+(locked?'pro-locked':'')+'" onclick="return mkassOpenSalonFinalSection(\''+id+'\')"><div>'+pillHtml+'<h3>'+esc(title)+'</h3><p>'+esc(desc)+'</p></div><span class="mkass-salon-menu-final-arrow">›</span></button>';
+    const pillHtml=pill?'<span class="mkass-salon-menu-final-pill">'+esc(pill)+'</span>':'';
+    return '<button type="button" class="mkass-salon-menu-final-card" onclick="mkassOpenSalonFinalSection(\''+id+'\')"><div>'+pillHtml+'<h3>'+esc(title)+'</h3><p>'+esc(desc)+'</p></div><span class="mkass-salon-menu-final-arrow">›</span></button>';
   }
-  function ensureFinalMenu(){
-    removeDuplicateMenus();
+  function ensureMenu(){
     const main=document.querySelector('#dash-content .dash-main') || document.querySelector('.dash-main');
     if(!main) return null;
+    removeOldMenus();
     let tab=document.getElementById('dt-salon-menu-final');
     if(tab) return tab;
     tab=document.createElement('div');
@@ -5750,61 +8015,239 @@ installStaffAndRulesTabs();
     return tab;
   }
   function showDashboardShell(){
-    if(typeof window.showView==='function') window.showView('dashboard');
-    const login=document.getElementById('dash-login'), content=document.getElementById('dash-content');
-    if(login && content && isOwner()){login.style.display='none'; content.style.display='block';}
+    if(typeof window.showView === 'function') window.showView('dashboard');
+    const login=document.getElementById('dash-login');
+    const content=document.getElementById('dash-content');
+    if(login && content && isOwner()){
+      login.style.display='none';
+      content.style.display='block';
+    }
   }
   window.mkassShowSalonFinalMenu=function(){
     showDashboardShell();
-    const tab=ensureFinalMenu();
+    const tab=ensureMenu();
     if(!tab) return false;
-    document.querySelectorAll('.dtab').forEach(e=>e.classList.remove('active'));
+    document.querySelectorAll('.dtab').forEach(function(e){e.classList.remove('active');});
     tab.classList.add('active');
-    document.querySelectorAll('.sb-btn').forEach(e=>e.classList.remove('active'));
+    document.querySelectorAll('.sb-btn').forEach(function(e){e.classList.remove('active');});
     activateBottom('nt-dash');
-    setTimeout(()=>window.scrollTo({top:0,behavior:'auto'}),10);
+    setTimeout(function(){ window.scrollTo({top:0,behavior:'auto'}); },10);
     return false;
   };
   window.mkassOpenSalonFinalSection=function(id){
-    if(PRO_IDS.has(id) && !isPro()){toastPro(); return false;}
     showDashboardShell();
-    ensureFinalMenu();
-    const final=document.getElementById('dt-salon-menu-final'); if(final) final.classList.remove('active');
+    ensureMenu();
+    const final=document.getElementById('dt-salon-menu-final');
+    if(final) final.classList.remove('active');
     const btn=document.querySelector('.sb-btn[onclick*="'+id+'"]') || document.querySelector('.sb-btn');
-    if(typeof window.swTab==='function' && document.getElementById(id)) window.swTab(btn,id);
-    else {document.querySelectorAll('.dtab').forEach(e=>e.classList.remove('active')); document.getElementById(id)?.classList.add('active');}
+    if(typeof window.swTab === 'function' && document.getElementById(id)){
+      window.swTab(btn,id);
+    }else{
+      document.querySelectorAll('.dtab').forEach(function(e){e.classList.remove('active');});
+      document.getElementById(id)?.classList.add('active');
+    }
     if(id==='dt-finance' && typeof window.loadFinanceData==='function') window.loadFinanceData();
     if(id==='dt-staff' && typeof window.loadStaffPro==='function') window.loadStaffPro();
     if(id==='dt-rules' && typeof window.loadSalonRules==='function') window.loadSalonRules();
     activateBottom(id==='dt-today' ? 'nt-explore' : id==='dt-finance' ? 'nt-my-bookings' : 'nt-dash');
-    setTimeout(()=>window.scrollTo({top:0,behavior:'auto'}),10);
+    setTimeout(function(){ window.scrollTo({top:0,behavior:'auto'}); },10);
     return false;
   };
-  window.showOwnerSalonHub=window.mkassShowSalonFinalMenu;
-  window.showSalonHub=window.mkassShowSalonFinalMenu;
-  window.openOwnerSection=window.mkassOpenSalonFinalSection;
-  window.setOwnerMobileNav=function(enabled){
-    const today=document.getElementById('nt-explore'), finance=document.getElementById('nt-my-bookings'), salon=document.getElementById('nt-dash'), login=document.getElementById('nt-login-mobile');
-    if(enabled){
-      if(today){today.textContent="Aujourd'hui"; today.onclick=function(ev){ev.preventDefault(); return window.mkassOpenSalonFinalSection('dt-today');};}
-      if(finance){finance.textContent='Finance'; finance.onclick=function(ev){ev.preventDefault(); return window.mkassOpenSalonFinalSection('dt-finance');};}
-      if(salon){salon.textContent='Salon'; salon.onclick=function(ev){ev.preventDefault(); return window.mkassShowSalonFinalMenu();}; salon.style.display='inline-flex';}
+  window.showOwnerSalonHub = window.mkassShowSalonFinalMenu;
+  window.showSalonHub = window.mkassShowSalonFinalMenu;
+  window.mkassShowMobileSalonMenu = window.mkassShowSalonFinalMenu;
+  window.mkassOpenMobileSalonSection = window.mkassOpenSalonFinalSection;
+  function wire(){
+    const today=document.getElementById('nt-explore');
+    const finance=document.getElementById('nt-my-bookings');
+    const salon=document.getElementById('nt-dash');
+    const login=document.getElementById('nt-login-mobile');
+    if(isOwner()){
+      if(today){ today.textContent="Aujourd'hui"; today.onclick=function(ev){ev.preventDefault(); return window.mkassOpenSalonFinalSection('dt-today');}; }
+      if(finance){ finance.textContent='Finance'; finance.onclick=function(ev){ev.preventDefault(); return window.mkassOpenSalonFinalSection('dt-finance');}; }
+      if(salon){ salon.textContent='Salon'; salon.onclick=function(ev){ev.preventDefault(); return window.mkassShowSalonFinalMenu();}; salon.style.display='inline-flex'; }
       if(login) login.style.display='none';
       document.body.classList.add('admin-logged');
-    }else{
-      if(today){today.textContent='Explorer'; today.onclick=function(){showView('explore');};}
-      if(finance){finance.textContent='Mes réservations'; finance.onclick=function(){showView('my-bookings');};}
-      if(salon){salon.textContent='Mon salon'; salon.onclick=function(){showView('dashboard');}; salon.style.display='none';}
-      if(login) login.style.display='inline-flex';
-      document.body.classList.remove('admin-logged');
     }
-  };
-  function wire(){
-    removeDuplicateMenus();
-    if(isOwner()){ensureFinalMenu(); window.setOwnerMobileNav(true);}
   }
-  document.addEventListener('DOMContentLoaded',wire);
-  setTimeout(wire,50); setTimeout(wire,300); setTimeout(wire,1000);
-  setInterval(wire,500);
+  document.addEventListener('DOMContentLoaded',function(){ensureMenu(); wire();});
+  setTimeout(function(){ensureMenu(); wire();},300);
+  setTimeout(wire,1000);
+  setInterval(wire,600);
 })();
 </script>
+
+</body>
+</html>
+<!-- MKASS FINAL STAFF UX + PRICE MODAL FIX -->
+<style id="mkass-staff-ux-price-modal-fix-css">
+.staff-status-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:5px 10px;font:800 12px/1 Inter,Arial,sans-serif;margin-top:8px;border:1px solid var(--mk-border,#dedbd2);background:var(--mk-panel-2,#fbfaf7);color:var(--mk-soft-text,#656760)}
+.staff-status-pill.pending{background:rgba(251,176,64,.14);border-color:rgba(251,176,64,.28);color:#b76b00}.staff-status-pill.confirmed{background:rgba(27,166,64,.14);border-color:rgba(27,166,64,.28);color:#1ba640}.staff-status-pill.done{background:rgba(96,165,250,.13);border-color:rgba(96,165,250,.25);color:#3478c9}.staff-status-pill.no_show,.staff-status-pill.cancelled{background:rgba(255,107,107,.13);border-color:rgba(255,107,107,.28);color:#d94d4d}
+.staff-lite-row.is-updating{opacity:.58;pointer-events:none}.staff-lite-note{margin-top:8px;padding:8px 10px;border-radius:12px;background:rgba(27,166,64,.08);border:1px solid rgba(27,166,64,.16);font:650 13px/1.35 Inter,Arial,sans-serif;color:var(--mk-text,#101010)}.staff-lite-actions .ab.active{background:#1ba640!important;border-color:#1ba640!important;color:#07110b!important;font-weight:900!important}.staff-lite-actions .ab:disabled{opacity:.55;cursor:not-allowed}.mkass-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200000;display:flex;align-items:center;justify-content:center;padding:20px}.mkass-clean-modal{width:min(460px,96vw);background:var(--mk-panel,#fff);border:1px solid var(--mk-border,#dedbd2);border-radius:24px;box-shadow:0 24px 80px rgba(0,0,0,.25);padding:22px;color:var(--mk-text,#101010);font-family:Inter,Arial,sans-serif}.mkass-clean-modal h3{font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif;font-size:24px;letter-spacing:-.04em;margin:0 0 8px}.mkass-clean-modal p{margin:0 0 16px;color:var(--mk-soft-text,#656760);line-height:1.45}.mkass-clean-modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}.mkass-clean-modal-actions .btn{min-width:110px;justify-content:center}
+html.dark .staff-lite-note{background:rgba(27,166,64,.13);color:#f6f6f1}html.dark .mkass-clean-modal{background:var(--mk-panel,#171b18);border-color:var(--mk-border,rgba(255,255,255,.14));color:#f6f6f1}
+</style>
+<script id="mkass-staff-ux-price-modal-fix-js">
+(function(){
+  function statusLabel(status){
+    const map={pending:'En attente',confirmed:'Confirmé',done:'Terminé',no_show:'Absent',cancelled:'Annulé'};
+    return map[String(status||'pending')] || String(status||'pending');
+  }
+  function esc(v){
+    return String(v ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  }
+  function getAppointmentNote(a){
+    return a?.note || a?.client_note || a?.comment || a?.comments || '';
+  }
+  function staffActionButton(id, status, target, label, cls){
+    const active = String(status) === target;
+    return `<button class="ab ${cls||''} ${active?'active':''}" ${active?'disabled':''} onclick="staffSetStatus('${esc(id)}','${target}', this)">${label}</button>`;
+  }
+
+  // Staff limited dashboard: show notes, clear status, add Annulé, and show unassigned "Peu importe" RDV to every staff until accepted.
+  window.loadStaffLiteAppointments = async function loadStaffLiteAppointmentsUx(){
+    const box=document.getElementById('staff-lite-list'); if(!box) return;
+    try{
+      const rows=await apiCall('GET',`/salons/${authSalonId}/staff/me/appointments`,null,true);
+      box.innerHTML=(rows||[]).length ? rows.map(a=>{
+        const st=String(a.status || 'pending');
+        const note=getAppointmentNote(a);
+        const staffLabel = a.staff_id || a.staffId ? 'Assigné à vous' : 'Peu importe - à accepter';
+        return `<div class="staff-lite-row" data-appt-id="${esc(a.id)}">
+          <div>
+            <strong>${esc(a.client_name || a.client || 'Client')}</strong>
+            <div>${esc(String(a.appt_date || a.date || '').slice(0,10))} · ${esc(String(a.appt_time || a.time || '').slice(0,5))} · ${esc(Array.isArray(a.services) ? a.services.join(', ') : (a.services || ''))}</div>
+            <small>${esc(staffLabel)}</small><br>
+            <span class="staff-status-pill ${esc(st)}">${esc(statusLabel(st))}</span>
+            ${note ? `<div class="staff-lite-note"><strong>Note client:</strong> ${esc(note)}</div>` : ''}
+          </div>
+          <div class="staff-lite-actions">
+            ${staffActionButton(a.id, st, 'confirmed', 'Confirmer', 'ok')}
+            ${staffActionButton(a.id, st, 'done', 'Terminé', 'ok')}
+            ${staffActionButton(a.id, st, 'no_show', 'Absent', 'bad')}
+            ${staffActionButton(a.id, st, 'cancelled', 'Annulé', 'bad')}
+          </div>
+        </div>`;
+      }).join('') : 'Aucun rendez-vous assigné ou disponible.';
+    }catch(err){ box.textContent=err.message || 'Impossible de charger le planning'; }
+  };
+
+  window.staffSetStatus = async function staffSetStatusUx(id,status,btn){
+    const row=btn?.closest?.('.staff-lite-row');
+    try{
+      if(row) row.classList.add('is-updating');
+      if(btn){ btn.disabled=true; btn.textContent='...'; }
+      await apiCall('PATCH',`/salons/${authSalonId}/staff/me/appointments/${id}/status`,{status},true);
+      toast('Statut mis à jour: ' + statusLabel(status));
+      await loadStaffLiteAppointments();
+    }catch(err){
+      toast(err.message || 'Erreur statut');
+      if(row) row.classList.remove('is-updating');
+      await loadStaffLiteAppointments();
+    }
+  };
+
+  // Professional replacement for native browser prompt used by "Modifier prix".
+  window.mkassPriceModal = function mkassPriceModal(service){
+    return new Promise(resolve=>{
+      const old=document.getElementById('mkass-price-modal'); if(old) old.remove();
+      const wrap=document.createElement('div');
+      wrap.id='mkass-price-modal';
+      wrap.className='mkass-modal-backdrop';
+      wrap.innerHTML=`<div class="mkass-clean-modal" role="dialog" aria-modal="true">
+        <h3>Modifier le prix</h3>
+        <p>${esc(service?.name || 'Service')} · prix actuel: <strong>${esc(service?.price || 0)} TND</strong></p>
+        <label class="f-label">Nouveau prix (TND)</label>
+        <input class="f-input" id="mkass-price-input" type="number" min="0" step="0.01" value="${esc(service?.price || 0)}">
+        <div class="mkass-clean-modal-actions"><button class="btn btn-ghost" id="mkass-price-cancel">Annuler</button><button class="btn btn-lime" id="mkass-price-ok">Sauvegarder</button></div>
+      </div>`;
+      document.body.appendChild(wrap);
+      const input=wrap.querySelector('#mkass-price-input');
+      setTimeout(()=>{input?.focus(); input?.select();},50);
+      function close(v){wrap.remove(); resolve(v);}
+      wrap.querySelector('#mkass-price-cancel').onclick=()=>close(null);
+      wrap.querySelector('#mkass-price-ok').onclick=()=>{
+        const n=Number(input.value);
+        if(!Number.isFinite(n) || n < 0){ toast('Prix invalide'); return; }
+        close(n);
+      };
+      wrap.addEventListener('click',e=>{ if(e.target===wrap) close(null); });
+      input.addEventListener('keydown',e=>{ if(e.key==='Enter') wrap.querySelector('#mkass-price-ok').click(); if(e.key==='Escape') close(null); });
+    });
+  };
+
+  window.editSvcPrice = async function editSvcPriceClean(id){
+    const svcs=SALON_SERVICES[loggedSalonId] || [];
+    const svc=svcs.find(s=>String(s.id)===String(id));
+    if(!svc) return;
+    const p=await window.mkassPriceModal(svc);
+    if(p===null) return;
+    try{
+      if(typeof apiCall === 'function'){
+        await apiCall('PUT', `/salons/${loggedSalonId}/services/${id}`, { price:p }, true);
+      }
+      svc.price=p;
+      if(typeof renderDSvcs==='function') renderDSvcs();
+      if(typeof renderWiSvcs==='function') renderWiSvcs();
+      toast('Prix mis à jour: '+p+' TND');
+    }catch(err){
+      toast(err.message || 'Erreur modification prix');
+    }
+  };
+})();
+</script>
+
+
+<!-- MKASS NOTIFICATION ALL FONTS FIX -->
+<style id="mkass-notification-all-fonts-fix">
+/* Make every notification-related element match the dashboard greeting font style */
+#toast, .toast,
+.mkass-push-btn, .mkass-push-btn *,
+.mkass-push-floating, .mkass-push-floating *,
+.mkass-notification-stack, .mkass-notification-stack *,
+.mkass-notification-card, .mkass-notification-card *,
+.mkass-notification-title,
+.mkass-notification-time,
+.mkass-notification-body,
+.mkass-notification-body strong {
+  font-family:'Plus Jakarta Sans','Inter',Arial,sans-serif !important;
+}
+
+.mkass-notification-title,
+.mkass-notification-body strong {
+  font-weight:800 !important;
+  letter-spacing:-0.045em !important;
+}
+
+.mkass-notification-body {
+  font-weight:650 !important;
+  letter-spacing:-0.015em !important;
+}
+
+.mkass-notification-time,
+.mkass-push-btn {
+  font-weight:800 !important;
+  letter-spacing:-0.02em !important;
+}
+
+#toast, .toast {
+  font-weight:750 !important;
+  letter-spacing:-0.018em !important;
+}
+
+
+/* MKASS GLOBAL TYPOGRAPHY NORMALIZATION - removes old notification/Syne/Instrument look from all screens */
+body, input, button, select, textarea, .view, .modal, .modal *, .dashboard, .dashboard *, .staff-lite-wrap, .staff-lite-wrap *, .salon-hub-wrap, .salon-hub-wrap *, .finance-pro, .finance-pro *, .staff-pro, .staff-pro *, .rules-pro, .rules-pro *, .mkass-clean-modal, .mkass-clean-modal *, .mkass-notification-card, .mkass-notification-card *, .mkass-push-btn, .mkass-push-mobile-btn {
+  font-family:'Plus Jakarta Sans', Inter, Arial, sans-serif !important;
+}
+.logo-text, .mkass-word {
+  font-family:'Space Grotesk','Plus Jakarta Sans',Inter,Arial,sans-serif !important;
+}
+</style>
+
+<!-- MKASS MOBILE SALON MENU STABLE FIX: standalone view, not inside dashboard dtab -->
+<!-- MKASS FINAL MOBILE SALON MENU SCROLL FIX -->
+
+
+
+<!-- MKASS DUPLICATE MOBILE SALON MENU REMOVED: final Mon salon menu above is the only active mobile Salon menu. -->
+

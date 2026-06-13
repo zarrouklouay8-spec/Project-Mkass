@@ -7928,6 +7928,147 @@ body.role-admin .salon-hub-card.pro-locked::after{display:none !important;conten
 
 
 
+
+
+<style id="mkass-single-mobile-salon-menu-final-css">
+/* FINAL: only one mobile Salon screen. It removes the old duplicated salon hub behavior. */
+#dt-salon-menu-final{display:none;}
+#dt-salon-menu-final.active{display:block;}
+.mkass-salon-menu-final{max-width:980px;margin:0 auto;padding:0 0 120px;color:var(--mk-text,#101010);font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;}
+.mkass-salon-menu-final-head{padding:4px 0 14px;}
+.mkass-salon-menu-final-kicker{font-size:12px;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:#1ba640;margin-bottom:8px;}
+.mkass-salon-menu-final-title{font-size:36px;line-height:1;letter-spacing:-.055em;font-weight:900;color:var(--mk-text,#101010);margin-bottom:8px;}
+.mkass-salon-menu-final-sub{font-size:14px;line-height:1.55;color:var(--mk-soft-text,#656760);margin-bottom:16px;}
+.mkass-salon-menu-final-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+.mkass-salon-menu-final-card{width:100%;border:1px solid var(--mk-border,#dedbd2);background:var(--mk-panel,#fff);border-radius:24px;padding:18px;min-height:116px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;text-align:left;color:var(--mk-text,#101010);box-shadow:var(--mk-shadow,0 18px 48px rgba(16,16,16,.07));cursor:pointer;font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;}
+.mkass-salon-menu-final-card h3{font-size:21px;line-height:1.1;letter-spacing:-.04em;font-weight:900;margin:0 0 7px;color:var(--mk-text,#101010);font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;}
+.mkass-salon-menu-final-card p{font-size:13px;line-height:1.42;color:var(--mk-soft-text,#656760);margin:0;font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;}
+.mkass-salon-menu-final-pill{display:inline-flex;width:max-content;max-width:100%;margin-bottom:9px;padding:6px 10px;border-radius:999px;background:rgba(27,166,64,.12);color:#1ba640;font:900 11px/1 Inter,Arial,sans-serif;}
+.mkass-salon-menu-final-arrow{width:38px;height:38px;min-width:38px;border-radius:999px;background:rgba(27,166,64,.12);color:#1ba640;display:grid;place-items:center;font-size:24px;font-weight:900;margin-top:auto;}
+.mkass-salon-menu-final-logout{border-color:rgba(255,107,107,.28)!important;background:rgba(255,107,107,.06)!important;}
+.mkass-salon-menu-final-logout .mkass-salon-menu-final-arrow{background:rgba(255,107,107,.12);color:#e55353;}
+html.dark .mkass-salon-menu-final-title,html.dark .mkass-salon-menu-final-card h3{color:#f6f6f1!important;}
+html.dark .mkass-salon-menu-final-card{background:var(--mk-panel,#171b18);border-color:var(--mk-border,rgba(255,255,255,.14));box-shadow:none;}
+@media(max-width:900px){
+  #dt-salon-menu-final{padding:4px 0 118px!important;}
+  .mkass-salon-menu-final-title{font-size:34px;}
+  .mkass-salon-menu-final-grid{grid-template-columns:1fr;gap:12px;}
+  .mkass-salon-menu-final-card{min-height:104px;border-radius:22px;padding:16px;box-shadow:none;}
+  .mkass-salon-menu-final-card h3{font-size:21px;}
+}
+</style>
+<script id="mkass-single-mobile-salon-menu-final-js">
+(function(){
+  function esc(v){return String(v ?? '').replace(/[&<>\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c] || c;});}
+  function isOwner(){
+    return Boolean(window.loggedSalonId || window.isAdmin || document.body.classList.contains('admin-logged'));
+  }
+  function activateBottom(id){
+    document.querySelectorAll('.ntab').forEach(function(e){e.classList.remove('active');});
+    document.getElementById(id)?.classList.add('active');
+  }
+  function removeOldMenus(){
+    ['dt-salon-hub','dt-mobile-salon-menu'].forEach(function(id){
+      const el=document.getElementById(id);
+      if(el) el.remove();
+    });
+  }
+  function card(id,title,desc,pill){
+    const pillHtml=pill?'<span class="mkass-salon-menu-final-pill">'+esc(pill)+'</span>':'';
+    return '<button type="button" class="mkass-salon-menu-final-card" onclick="mkassOpenSalonFinalSection(\''+id+'\')"><div>'+pillHtml+'<h3>'+esc(title)+'</h3><p>'+esc(desc)+'</p></div><span class="mkass-salon-menu-final-arrow">›</span></button>';
+  }
+  function ensureMenu(){
+    const main=document.querySelector('#dash-content .dash-main') || document.querySelector('.dash-main');
+    if(!main) return null;
+    removeOldMenus();
+    let tab=document.getElementById('dt-salon-menu-final');
+    if(tab) return tab;
+    tab=document.createElement('div');
+    tab.id='dt-salon-menu-final';
+    tab.className='dtab';
+    tab.innerHTML='<div class="mkass-salon-menu-final">'+
+      '<div class="mkass-salon-menu-final-head">'+
+      '<div class="mkass-salon-menu-final-kicker">Espace gérant</div>'+
+      '<div class="mkass-salon-menu-final-title">Mon salon</div>'+
+      '<div class="mkass-salon-menu-final-sub">Choisissez une rubrique. Le bouton Salon revient toujours à ce menu.</div>'+
+      '</div><div class="mkass-salon-menu-final-grid">'+
+      card('dt-today',"Aujourd'hui",'Planning du jour, confirmations et actions rapides.')+
+      card('dt-all','Tous les RDV','Consultez et gérez toutes les réservations.')+
+      card('dt-walkin','Caisse / Walk-in','Ajoutez un client venu sans réservation et encaissez.')+
+      card('dt-balance','Balance totale','Suivez les recettes et l’historique des paiements.')+
+      card('dt-finance','Finance Pro','Dépenses, bénéfice net et commissions staff.','Pro')+
+      card('dt-services','Services & tarifs','Ajoutez, modifiez ou supprimez les prestations visibles dans la réservation.')+
+      card('dt-staff','Personnel','Employés, accès staff, horaires et commissions.','Pro')+
+      card('dt-rules','Règles du salon','No-show, clients bloqués et règles avancées.','Pro')+
+      card('dt-settings','Horaires & profil','Photo, adresse, lien Google Maps, latitude/longitude, statut et horaires.')+
+      '<button type="button" class="mkass-salon-menu-final-card mkass-salon-menu-final-logout" onclick="logout()"><div><h3>Déconnexion</h3><p>Quitter l’espace gérant sur cet appareil.</p></div><span class="mkass-salon-menu-final-arrow">×</span></button>'+
+      '</div></div>';
+    main.insertBefore(tab, main.firstChild);
+    return tab;
+  }
+  function showDashboardShell(){
+    if(typeof window.showView === 'function') window.showView('dashboard');
+    const login=document.getElementById('dash-login');
+    const content=document.getElementById('dash-content');
+    if(login && content && isOwner()){
+      login.style.display='none';
+      content.style.display='block';
+    }
+  }
+  window.mkassShowSalonFinalMenu=function(){
+    showDashboardShell();
+    const tab=ensureMenu();
+    if(!tab) return false;
+    document.querySelectorAll('.dtab').forEach(function(e){e.classList.remove('active');});
+    tab.classList.add('active');
+    document.querySelectorAll('.sb-btn').forEach(function(e){e.classList.remove('active');});
+    activateBottom('nt-dash');
+    setTimeout(function(){ window.scrollTo({top:0,behavior:'auto'}); },10);
+    return false;
+  };
+  window.mkassOpenSalonFinalSection=function(id){
+    showDashboardShell();
+    ensureMenu();
+    const final=document.getElementById('dt-salon-menu-final');
+    if(final) final.classList.remove('active');
+    const btn=document.querySelector('.sb-btn[onclick*="'+id+'"]') || document.querySelector('.sb-btn');
+    if(typeof window.swTab === 'function' && document.getElementById(id)){
+      window.swTab(btn,id);
+    }else{
+      document.querySelectorAll('.dtab').forEach(function(e){e.classList.remove('active');});
+      document.getElementById(id)?.classList.add('active');
+    }
+    if(id==='dt-finance' && typeof window.loadFinanceData==='function') window.loadFinanceData();
+    if(id==='dt-staff' && typeof window.loadStaffPro==='function') window.loadStaffPro();
+    if(id==='dt-rules' && typeof window.loadSalonRules==='function') window.loadSalonRules();
+    activateBottom(id==='dt-today' ? 'nt-explore' : id==='dt-finance' ? 'nt-my-bookings' : 'nt-dash');
+    setTimeout(function(){ window.scrollTo({top:0,behavior:'auto'}); },10);
+    return false;
+  };
+  window.showOwnerSalonHub = window.mkassShowSalonFinalMenu;
+  window.showSalonHub = window.mkassShowSalonFinalMenu;
+  window.mkassShowMobileSalonMenu = window.mkassShowSalonFinalMenu;
+  window.mkassOpenMobileSalonSection = window.mkassOpenSalonFinalSection;
+  function wire(){
+    const today=document.getElementById('nt-explore');
+    const finance=document.getElementById('nt-my-bookings');
+    const salon=document.getElementById('nt-dash');
+    const login=document.getElementById('nt-login-mobile');
+    if(isOwner()){
+      if(today){ today.textContent="Aujourd'hui"; today.onclick=function(ev){ev.preventDefault(); return window.mkassOpenSalonFinalSection('dt-today');}; }
+      if(finance){ finance.textContent='Finance'; finance.onclick=function(ev){ev.preventDefault(); return window.mkassOpenSalonFinalSection('dt-finance');}; }
+      if(salon){ salon.textContent='Salon'; salon.onclick=function(ev){ev.preventDefault(); return window.mkassShowSalonFinalMenu();}; salon.style.display='inline-flex'; }
+      if(login) login.style.display='none';
+      document.body.classList.add('admin-logged');
+    }
+  }
+  document.addEventListener('DOMContentLoaded',function(){ensureMenu(); wire();});
+  setTimeout(function(){ensureMenu(); wire();},300);
+  setTimeout(wire,1000);
+  setInterval(wire,600);
+})();
+</script>
+
 </body>
 </html>
 <!-- MKASS FINAL STAFF UX + PRICE MODAL FIX -->

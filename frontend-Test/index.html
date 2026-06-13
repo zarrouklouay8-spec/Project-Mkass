@@ -4902,94 +4902,53 @@ deleteSvc = async function deleteSvcApi(id) {
 };
 
 // Override settings save.
-// FIX: save only the real changed salon fields to Railway, keep map link separate
-// from distance coordinates, and do not accidentally erase cover_img by sending null.
 saveSettingsBtn = async function saveSettingsBtnApi() {
-  if (!loggedSalonId || loggedSalonId === "__admin__") {
-    toast("Connectez-vous comme gérant pour sauvegarder");
-    return;
-  }
+  const s = SALONS.find((x) => x.id === loggedSalonId);
+  if (!s) return;
 
-  const s = SALONS.find((x) => String(x.id) === String(loggedSalonId));
-  if (!s) {
-    toast("Salon introuvable");
-    return;
-  }
-
-  const name = document.getElementById("sett-name")?.value.trim() || s.name || "";
-  const address = document.getElementById("sett-addr")?.value.trim() || "";
-  const status = document.getElementById("sett-status")?.value || "open";
   const mapUrl = document.getElementById("sett-map-url")?.value.trim() || "";
-  const latRaw = document.getElementById("sett-lat")?.value.trim() || "";
-  const lngRaw = document.getElementById("sett-lng")?.value.trim() || "";
-
   const manualCoords = mkassGetSettingsCoords();
   const linkCoords = mkassExtractCoordsFromMapUrl(mapUrl);
   const coords = manualCoords || linkCoords;
-
-  if ((latRaw || lngRaw) && !manualCoords) {
+  if((document.getElementById('sett-lat')?.value.trim() || document.getElementById('sett-lng')?.value.trim()) && !manualCoords){
     toast("Latitude ou longitude invalide");
     return;
   }
-
   const patch = {
-    name,
-    address,
-    status,
+    name: document.getElementById("sett-name").value,
+    address: document.getElementById("sett-addr").value,
+    status: document.getElementById("sett-status").value,
     map_url: mapUrl,
-    mapUrl: mapUrl
+    mapUrl: mapUrl,
+    ...(coords ? { lat: coords.lat, lng: coords.lng, latitude: coords.lat, longitude: coords.lng } : {}),
   };
 
-  if (coords) {
-    patch.lat = coords.lat;
-    patch.lng = coords.lng;
-    patch.latitude = coords.lat;
-    patch.longitude = coords.lng;
-  }
-
-  // Only send the cover image when there is really one. Sending coverImg:null
-  // makes the backend clear cover_img on every settings save.
-  if (s.coverImg) {
-    patch.coverImg = s.coverImg;
-    patch.cover_img = s.coverImg;
-  }
+  // Only send coverImg if there is a real cover image.
+  // Never send null here, otherwise a normal settings save can erase the salon photo.
+  if (s.coverImg) patch.coverImg = s.coverImg;
 
   try {
     const payload = await apiCall("PUT", `/salons/${loggedSalonId}`, patch, true);
     const updatedSalon = normalizeApiSalon(unwrapApi(payload, "salon") || { ...s, ...patch });
     Object.assign(s, updatedSalon);
 
-    // Keep local state exactly aligned with the fields visible in Paramètres.
-    s.name = name;
-    s.address = address;
-    s.status = status;
-    s.mapUrl = mapUrl;
-    s.map_url = mapUrl;
-    if (coords) {
-      s.lat = coords.lat;
-      s.lng = coords.lng;
-      s.latitude = coords.lat;
-      s.longitude = coords.lng;
-      const latInput = document.getElementById("sett-lat");
-      const lngInput = document.getElementById("sett-lng");
-      if (latInput && !latRaw) latInput.value = coords.lat;
-      if (lngInput && !lngRaw) lngInput.value = coords.lng;
-    }
+    // Keep the UI in sync immediately after changing the salon name/address/map/status.
+    const sidebarLabel = document.getElementById('sb-salon-lbl');
+    if (sidebarLabel) sidebarLabel.textContent = (s.icon || '✂️') + ' ' + (s.name || 'Mon salon');
+    if (typeof renderShops === 'function') renderShops();
 
+    // Hours are saved separately. If that endpoint fails, do not show a false
+    // server error for the salon settings/map URL because the main save worked.
     try {
       await saveSalonHours();
     } catch (hoursErr) {
       console.warn("Horaires non sauvegardés avec les paramètres:", hoursErr);
-      toast("Profil sauvegardé, horaires non sauvegardés");
-      return;
     }
 
     const greeting = document.getElementById("d-greeting");
     if (greeting) greeting.textContent = "Bonjour, " + s.name + " 👋";
-    renderShops();
     toast("✓ Paramètres sauvegardés");
   } catch (err) {
-    console.error("Erreur sauvegarde paramètres:", err);
     toast(err.message || "Erreur paramètres");
   }
 };
@@ -8046,10 +8005,10 @@ html.dark .mkass-salon-menu-final-card{background:var(--mk-panel,#171b18);border
       card('dt-walkin','Caisse / Walk-in','Ajoutez un client venu sans réservation et encaissez.')+
       card('dt-balance','Balance totale','Suivez les recettes et l’historique des paiements.')+
       card('dt-finance','Finance Pro','Dépenses, bénéfice net et commissions staff.','Pro')+
-      card('dt-services','Services & tarifs','Ajoutez, modifiez ou supprimez les prestations visibles dans la réservation.')+
+      card('dt-services','Mes services','Ajoutez, modifiez ou supprimez les prestations visibles dans la réservation.')+
       card('dt-staff','Personnel','Employés, accès staff, horaires et commissions.','Pro')+
-      card('dt-rules','Règles du salon','No-show, clients bloqués et règles avancées.','Pro')+
-      card('dt-settings','Horaires & profil','Photo, adresse, lien Google Maps, latitude/longitude, statut et horaires.')+
+      card('dt-rules','Règles','No-show, clients bloqués et règles avancées.','Pro')+
+      card('dt-settings','Paramètres','Nom du salon, photo, adresse, lien Google Maps, latitude/longitude et statut.')+
       '<button type="button" class="mkass-salon-menu-final-card mkass-salon-menu-final-logout" onclick="logout()"><div><h3>Déconnexion</h3><p>Quitter l’espace gérant sur cet appareil.</p></div><span class="mkass-salon-menu-final-arrow">×</span></button>'+
       '</div></div>';
     main.insertBefore(tab, main.firstChild);
@@ -8289,103 +8248,6 @@ body, input, button, select, textarea, .view, .modal, .modal *, .dashboard, .das
 <!-- MKASS FINAL MOBILE SALON MENU SCROLL FIX -->
 
 
-<!-- MKASS MOBILE SALON MENU SIMPLE FIX: no fixed view, no body lock, no blank on scroll -->
-<style id="mkass-mobile-salon-menu-simple-fix-css">
-#dt-mobile-salon-menu{display:none;}
-#dt-mobile-salon-menu.active{display:block;}
-.mkass-mobile-menu-clean{max-width:980px;margin:0 auto;color:var(--mk-text,#101010);font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;}
-.mkass-mobile-menu-clean-kicker{font-size:12px;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:#1ba640;margin-bottom:8px;}
-.mkass-mobile-menu-clean-title{font-size:38px;line-height:1;letter-spacing:-.055em;font-weight:900;color:var(--mk-text,#101010);margin-bottom:8px;}
-.mkass-mobile-menu-clean-sub{font-size:14px;line-height:1.55;color:var(--mk-soft-text,#656760);margin-bottom:18px;}
-.mkass-mobile-menu-clean-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
-.mkass-mobile-menu-clean-card{width:100%;border:1px solid var(--mk-border,#dedbd2);background:var(--mk-panel,#fff);border-radius:24px;padding:18px;min-height:116px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;text-align:left;color:var(--mk-text,#101010);box-shadow:var(--mk-shadow,0 18px 48px rgba(16,16,16,.07));cursor:pointer;font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;}
-.mkass-mobile-menu-clean-card h3{font-size:21px;line-height:1.1;letter-spacing:-.04em;font-weight:900;margin:0 0 7px;color:var(--mk-text,#101010);font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;}
-.mkass-mobile-menu-clean-card p{font-size:13px;line-height:1.42;color:var(--mk-soft-text,#656760);margin:0;font-family:'Plus Jakarta Sans',Inter,Arial,sans-serif!important;}
-.mkass-mobile-menu-clean-pill{display:inline-flex;width:max-content;max-width:100%;margin-bottom:9px;padding:6px 10px;border-radius:999px;background:rgba(27,166,64,.12);color:#1ba640;font:900 11px/1 Inter,Arial,sans-serif;}
-.mkass-mobile-menu-clean-arrow{width:38px;height:38px;min-width:38px;border-radius:999px;background:rgba(27,166,64,.12);color:#1ba640;display:grid;place-items:center;font-size:24px;font-weight:900;margin-top:auto;}
-.mkass-mobile-menu-clean-logout{border-color:rgba(255,107,107,.28)!important;background:rgba(255,107,107,.06)!important;}
-.mkass-mobile-menu-clean-logout .mkass-mobile-menu-clean-arrow{background:rgba(255,107,107,.12);color:#e55353;}
-html.dark .mkass-mobile-menu-clean-title,html.dark .mkass-mobile-menu-clean-card h3{color:#f6f6f1!important;}
-html.dark .mkass-mobile-menu-clean-card{background:var(--mk-panel,#171b18);border-color:var(--mk-border,rgba(255,255,255,.14));box-shadow:none;}
-@media(max-width:900px){
-  #dt-mobile-salon-menu{padding:4px 0 118px!important;}
-  .mkass-mobile-menu-clean-title{font-size:34px;}
-  .mkass-mobile-menu-clean-grid{grid-template-columns:1fr;gap:12px;}
-  .mkass-mobile-menu-clean-card{min-height:104px;border-radius:22px;padding:16px;box-shadow:none;}
-  .mkass-mobile-menu-clean-card h3{font-size:21px;}
-}
-</style>
-<script id="mkass-mobile-salon-menu-simple-fix-js">
-(function(){
-  function esc(v){return String(v ?? '').replace(/[&<>\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c] || c;});}
-  function card(id,title,desc,pill){
-    const pillHtml=pill?'<span class="mkass-mobile-menu-clean-pill">'+esc(pill)+'</span>':'';
-    return '<button type="button" class="mkass-mobile-menu-clean-card" onclick="mkassOpenMobileSalonSection(\''+id+'\')"><div>'+pillHtml+'<h3>'+esc(title)+'</h3><p>'+esc(desc)+'</p></div><span class="mkass-mobile-menu-clean-arrow">›</span></button>';
-  }
-  function ensureMenuTab(){
-    let tab=document.getElementById('dt-mobile-salon-menu');
-    if(tab) return tab;
-    const main=document.querySelector('#dash-content .dash-main') || document.querySelector('.dash-main');
-    if(!main) return null;
-    tab=document.createElement('div');
-    tab.id='dt-mobile-salon-menu';
-    tab.className='dtab';
-    tab.innerHTML='<div class="mkass-mobile-menu-clean">'+
-      '<div class="mkass-mobile-menu-clean-kicker">Espace gérant</div>'+
-      '<div class="mkass-mobile-menu-clean-title">Mon salon</div>'+
-      '<div class="mkass-mobile-menu-clean-sub">Accédez rapidement à toutes les fonctions du salon depuis mobile.</div>'+
-      '<div class="mkass-mobile-menu-clean-grid">'+
-      card('dt-today',"Aujourd'hui",'Planning du jour, confirmations et actions rapides.')+
-      card('dt-all','Tous les RDV','Consultez et gérez toutes les réservations.')+
-      card('dt-walkin','Caisse / Walk-in','Ajoutez un client venu sans réservation et encaissez.')+
-      card('dt-balance','Balance totale','Suivez les recettes et l’historique des paiements.')+
-      card('dt-finance','Finance Pro','Dépenses, bénéfice net et commissions staff.','Pro')+
-      card('dt-services','Mes services','Modifiez les prestations, prix et durées.')+
-      card('dt-staff','Personnel','Employés, accès staff, horaires et commissions.','Pro')+
-      card('dt-rules','Règles','No-show, blocage clients et règles avancées.','Pro')+
-      card('dt-settings','Paramètres','Profil salon, adresse, lien Google Maps, latitude/longitude et horaires.')+
-      '<button type="button" class="mkass-mobile-menu-clean-card mkass-mobile-menu-clean-logout" onclick="logout()"><div><h3>Déconnexion</h3><p>Quitter l’espace gérant sur cet appareil.</p></div><span class="mkass-mobile-menu-clean-arrow">×</span></button>'+
-      '</div></div>';
-    main.insertBefore(tab, main.firstChild);
-    return tab;
-  }
-  function ensureDashboardVisible(){
-    if(typeof showView === 'function') showView('dashboard');
-    const login=document.getElementById('dash-login');
-    const content=document.getElementById('dash-content');
-    if(login && content && (window.loggedSalonId || window.isAdmin || document.body.classList.contains('admin-logged'))){
-      login.style.display='none';
-      content.style.display='block';
-    }
-  }
-  window.mkassShowMobileSalonMenu=function(){
-    ensureDashboardVisible();
-    const tab=ensureMenuTab();
-    if(!tab) return false;
-    document.body.classList.remove('mkass-mobile-salon-menu-open');
-    document.querySelectorAll('.dtab').forEach(function(e){e.classList.remove('active');});
-    tab.classList.add('active');
-    document.querySelectorAll('.sb-btn').forEach(function(e){e.classList.remove('active');});
-    document.querySelectorAll('.ntab').forEach(function(e){e.classList.remove('active');});
-    document.getElementById('nt-dash')?.classList.add('active');
-    setTimeout(function(){ window.scrollTo({top:0,behavior:'auto'}); },20);
-    return false;
-  };
-  window.mkassOpenMobileSalonSection=function(id){
-    ensureDashboardVisible();
-    const btn=document.querySelector('.sb-btn[onclick*="'+id+'"]') || document.querySelector('.sb-btn');
-    if(typeof swTab === 'function' && document.getElementById(id)) swTab(btn,id);
-    setTimeout(function(){ window.scrollTo({top:0,behavior:'auto'}); },20);
-  };
-  function wire(){
-    const salon=document.getElementById('nt-dash');
-    if(!salon) return;
-    salon.textContent='Salon';
-    salon.onclick=function(ev){ ev.preventDefault(); return window.mkassShowMobileSalonMenu(); };
-  }
-  document.addEventListener('DOMContentLoaded',function(){ ensureMenuTab(); wire(); });
-  setTimeout(function(){ ensureMenuTab(); wire(); },300);
-  setTimeout(wire,1000);
-  setInterval(wire,2000);
-})();
-</script>
+
+<!-- MKASS DUPLICATE MOBILE SALON MENU REMOVED: final Mon salon menu above is the only active mobile Salon menu. -->
+

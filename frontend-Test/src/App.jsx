@@ -484,44 +484,124 @@ export default function App() {
   }
 
   async function saveSettings(form, setButtonState) {
-    const salonId = auth.salonId;
-    const salon = salons.find((s) => s.id === salonId);
-    if (!salon) return;
-    const linkCoords = mkassExtractCoordsFromMapUrl(form.mapUrl);
-    const lat = Number(form.latitude || linkCoords?.lat);
-    const lng = Number(form.longitude || linkCoords?.lng);
-    const coordsValid = Number.isFinite(lat) && Number.isFinite(lng);
-    if ((form.latitude || form.longitude) && !coordsValid) {
-      showToast('Latitude ou longitude invalide');
-      return;
-    }
-    const patch = {
-      name: form.name,
-      address: form.address,
-      status: form.status,
-      map_url: form.mapUrl || '',
-      mapUrl: form.mapUrl || '',
-      ...(coordsValid ? { lat, lng, latitude: lat, longitude: lng } : {}),
+    const salonId = String(auth.salonId || '').trim();
+    const salon = salons.find((s) => String(s.id) === salonId);
+
+    const finish = (state, message, delay = 1800) => {
+      setButtonState?.(state);
+      if (message) showToast(message);
+      window.setTimeout(() => setButtonState?.('idle'), delay);
     };
-    if (form.coverImg) patch.coverImg = form.coverImg;
+
+    if (!auth.token || !salonId) {
+      finish('error', 'Connectez-vous comme gérant pour sauvegarder', 2200);
+      return false;
+    }
+
+    if (!salon) {
+      finish('error', 'Salon introuvable', 2200);
+      return false;
+    }
+
     setButtonState?.('saving');
+
     try {
-      const payload = await apiCall('PUT', `/salons/${salonId}`, patch, auth.token);
-      const updated = normalizeApiSalon(unwrapApi(payload, 'salon') || { ...salon, ...patch });
-      const merged = { ...salon, ...updated, ...patch };
-      setSalons((prev) => prev.map((s) => s.id === salonId ? merged : s));
-      writeLocalJson(`mkass_salon_overlay_${salonId}`, {
-        mapUrl: patch.mapUrl,
+      const linkCoords = mkassExtractCoordsFromMapUrl(form.mapUrl);
+      const rawLat = String(form.latitude ?? '').trim().replace(',', '.');
+      const rawLng = String(form.longitude ?? '').trim().replace(',', '.');
+      const hasManualLatLng = rawLat !== '' || rawLng !== '';
+      const lat = rawLat !== '' ? Number(rawLat) : Number(linkCoords?.lat);
+      const lng = rawLng !== '' ? Number(rawLng) : Number(linkCoords?.lng);
+      const coordsValid = Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+
+      if (hasManualLatLng && !coordsValid) {
+        finish('error', 'Latitude ou longitude invalide', 2200);
+        return false;
+      }
+
+      const basePatch = {
+        name: String(form.name || '').trim(),
+        address: String(form.address || '').trim(),
+        status: form.status || 'open',
+      };
+
+      if (!basePatch.name) {
+        finish('error', 'Le nom du salon est obligatoire', 2200);
+        return false;
+      }
+
+      const mapUrl = String(form.mapUrl || '').trim();
+      const fullPatch = {
+        ...basePatch,
+        map_url: mapUrl,
+        mapUrl,
+        google_maps_url: mapUrl,
+        ...(coordsValid ? { lat, lng, latitude: lat, longitude: lng } : {}),
+      };
+
+      const hasNewCover = Boolean(form.coverImg && form.coverImg !== salon.coverImg);
+      if (hasNewCover) {
+        fullPatch.coverImg = form.coverImg;
+        fullPatch.cover_img = form.coverImg;
+      }
+
+      // Keep a local overlay too. This avoids the UI appearing reverted after refresh
+      // while Vercel/Railway are still catching up with schema/API changes.
+      const localOverlay = {
+        name: basePatch.name,
+        address: basePatch.address,
+        status: basePatch.status,
+        mapUrl,
+        map_url: mapUrl,
+        google_maps_url: mapUrl,
         latitude: coordsValid ? lat : salon.latitude,
         longitude: coordsValid ? lng : salon.longitude,
-      });
+        lat: coordsValid ? lat : salon.lat,
+        lng: coordsValid ? lng : salon.lng,
+        ...(hasNewCover ? { coverImg: form.coverImg, cover_img: form.coverImg } : {}),
+      };
+
+      let payload = null;
+      let lastError = null;
+
+      // Try the newest API shape first, then fall back to older backend shapes.
+      // This is important because Test backend may still be one migration behind.
+      const attempts = [
+        fullPatch,
+        { ...basePatch, map_url: mapUrl, mapUrl, ...(hasNewCover ? { coverImg: form.coverImg, cover_img: form.coverImg } : {}) },
+        { ...basePatch, ...(hasNewCover ? { coverImg: form.coverImg, cover_img: form.coverImg } : {}) },
+      ];
+
+      for (const attempt of attempts) {
+        try {
+          payload = await apiCall('PUT', `/salons/${salonId}`, attempt, auth.token);
+          break;
+        } catch (err) {
+          lastError = err;
+          // Auth/access/subscription errors are real errors. Retrying with fewer fields will not help.
+          if ([401, 402, 403, 404].includes(Number(err.status))) break;
+        }
+      }
+
+      if (!payload) {
+        throw lastError || new Error('Erreur sauvegarde paramètres');
+      }
+
+      const updated = normalizeApiSalon(unwrapApi(payload, 'salon') || { ...salon, ...fullPatch });
+      const merged = { ...salon, ...updated, ...localOverlay };
+
+      writeLocalJson(`mkass_salon_overlay_${salonId}`, localOverlay);
+      setSalons((prev) => prev.map((s) => String(s.id) === salonId ? merged : s));
       setButtonState?.('saved');
       showToast('✓ Paramètres sauvegardés');
       window.setTimeout(() => setButtonState?.('idle'), 1800);
+      return true;
     } catch (err) {
+      console.error('Settings save failed:', err);
       setButtonState?.('error');
       showToast(err.message || 'Erreur paramètres');
-      window.setTimeout(() => setButtonState?.('idle'), 2200);
+      window.setTimeout(() => setButtonState?.('idle'), 2400);
+      return false;
     }
   }
 
@@ -1493,7 +1573,7 @@ function SettingsTab({ currentSalon, saveSettings }) {
     reader.readAsDataURL(file);
   }
   const btnText = buttonState === 'saving' ? 'Sauvegarde...' : buttonState === 'saved' ? '✓ Sauvegardé' : buttonState === 'error' ? 'Erreur - réessayer' : 'Sauvegarder les paramètres';
-  return <><div className="dash-hdr"><div className="dash-title">Paramètres du salon</div></div><div className="settings-form"><div className="f-row"><label className="f-label">Photo de couverture</label><label className="cover-upload">{form.coverImg ? <img src={form.coverImg} alt="" /> : <span className="cover-upload-txt"><span>🖼️</span><p>Cliquez pour importer<br />une photo de votre salon</p></span>}<input type="file" accept="image/*" onChange={(e) => upload(e.target.files?.[0])} /></label></div><Input label="Nom du salon" value={form.name} onChange={(v) => setForm({ ...form, name: v })} /><Input label="Adresse" value={form.address} onChange={(v) => setForm({ ...form, address: v })} /><Input label="Lien Google Maps / Itinéraire" value={form.mapUrl} onChange={fillCoordsFromMapUrl} placeholder="Collez le lien Google Maps du salon" help="Ce lien sera utilisé pour ouvrir l’itinéraire. Si le lien ne contient pas les coordonnées, remplissez Latitude et Longitude." /><div className="form-row-2"><Input label="Latitude" value={form.latitude} onChange={(v) => setForm({ ...form, latitude: v })} placeholder="Ex: 36.849722" /><Input label="Longitude" value={form.longitude} onChange={(v) => setForm({ ...form, longitude: v })} placeholder="Ex: 10.259639" /></div><div className="help-text">Exemple accepté : 36°50'59.0&quot;N 10°15'34.7&quot;E → Latitude 36.849722, Longitude 10.259639.</div><div className="f-row"><label className="f-label">Statut</label><select className="f-input" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option value="open">Ouvert</option><option value="busy">Très demandé</option><option value="closed">Fermé</option></select></div><Input label="Nouveau mot de passe" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} placeholder="Laisser vide = pas de changement" /><button className="btn btn-lime" disabled={buttonState === 'saving'} onClick={() => saveSettings(form, setButtonState)}>{btnText}</button></div></>;
+  return <><div className="dash-hdr"><div className="dash-title">Paramètres du salon</div></div><div className="settings-form"><div className="f-row"><label className="f-label">Photo de couverture</label><label className="cover-upload">{form.coverImg ? <img src={form.coverImg} alt="" /> : <span className="cover-upload-txt"><span>🖼️</span><p>Cliquez pour importer<br />une photo de votre salon</p></span>}<input type="file" accept="image/*" onChange={(e) => upload(e.target.files?.[0])} /></label></div><Input label="Nom du salon" value={form.name} onChange={(v) => setForm({ ...form, name: v })} /><Input label="Adresse" value={form.address} onChange={(v) => setForm({ ...form, address: v })} /><Input label="Lien Google Maps / Itinéraire" value={form.mapUrl} onChange={fillCoordsFromMapUrl} placeholder="Collez le lien Google Maps du salon" help="Ce lien sera utilisé pour ouvrir l’itinéraire. Si le lien ne contient pas les coordonnées, remplissez Latitude et Longitude." /><div className="form-row-2"><Input label="Latitude" value={form.latitude} onChange={(v) => setForm({ ...form, latitude: v })} placeholder="Ex: 36.849722" /><Input label="Longitude" value={form.longitude} onChange={(v) => setForm({ ...form, longitude: v })} placeholder="Ex: 10.259639" /></div><div className="help-text">Exemple accepté : 36°50'59.0&quot;N 10°15'34.7&quot;E → Latitude 36.849722, Longitude 10.259639.</div><div className="f-row"><label className="f-label">Statut</label><select className="f-input" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option value="open">Ouvert</option><option value="busy">Très demandé</option><option value="closed">Fermé</option></select></div><Input label="Nouveau mot de passe" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} placeholder="Laisser vide = pas de changement" /><button type="button" className="btn btn-lime" disabled={buttonState === 'saving'} onClick={() => saveSettings(form, setButtonState)}>{btnText}</button></div></>;
 }
 
 function salonToSettings(salon) {
@@ -1513,3 +1593,4 @@ function Input({ label, value, onChange, placeholder, type = 'text', help, onEnt
 function Footer() {
   return <footer className="mk-footer"><div className="mk-footer-inner"><div className="mk-footer-brand"><div className="footer-logo"><LogoMark /><span className="logo-text mkass-word">Mkass</span></div><p>La plateforme de réservation en ligne pour trouver les meilleurs salons et barbiers près de chez vous.<br /><small>Contact : <a href="mailto:mkass@gmail.com">mkass@gmail.com</a> · <a href="tel:+21692888695">+216 92 888 695</a></small></p></div><div className="mk-footer-grid"><div><h4>À propos de Mkass</h4><a>Aide et assistance</a><a>Blog</a><a>Plan du site</a></div><div><h4>Pour les professionnels</h4><a>Pour les partenaires</a><a>Tarifs</a><a>Aide</a></div><div><h4>Mentions légales</h4><a>Mentions légales</a><a>CGV</a><a>Politique de remboursement</a><a>Confidentialité</a><a>Cookies</a></div><div><h4>Réseaux sociaux</h4><a href="https://www.facebook.com/profile.php?id=61590437757914" target="_blank" rel="noreferrer">↗ Facebook</a><a href="https://www.instagram.com/mkassapp/" target="_blank" rel="noreferrer">↗ Instagram</a></div></div></div><div className="mk-footer-bottom"><span>◎ français (FR)</span><span>© 2026 Mkass. Tous droits réservés.</span></div></footer>;
 }
+

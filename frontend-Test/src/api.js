@@ -30,7 +30,12 @@ export async function apiCall(method, path, body = null, token = null) {
 
   if (!res.ok) {
     const msg = data?.error || data?.message || `API error ${res.status}`;
-    throw new Error(msg);
+    const error = new Error(msg);
+    error.status = res.status;
+    error.payload = data;
+    error.method = method;
+    error.path = path;
+    throw error;
   }
 
   return data;

@@ -4,6 +4,33 @@ const pool = require('../db/pool');
 const bcrypt = require('bcryptjs');
 const { requireAdmin, requireSalonAccess, requireActiveSubscription } = require('../middleware/auth');
 
+function extractGoogleMapsCoords(mapUrl) {
+  if (!mapUrl || typeof mapUrl !== 'string') return null;
+  const decoded = decodeURIComponent(mapUrl.trim());
+
+  const patterns = [
+    /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
+    /[?&](?:q|query|ll|center)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    /[?&]destination=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    /[?&]daddr=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    /[?&]sll=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/
+  ];
+
+  for (const pattern of patterns) {
+    const match = decoded.match(pattern);
+    if (!match) continue;
+    const lat = Number(match[1]);
+    const lng = Number(match[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+      return { lat, lng };
+    }
+  }
+
+  return null;
+}
+
+
 function toMinutes(time) {
   const [h, m] = String(time).slice(0, 5).split(':').map(Number);
   return h * 60 + m;
@@ -628,20 +655,25 @@ router.put('/:salonId', requireSalonAccess, requireActiveSubscription, async (re
       : req.body.coverImg;
 
     const mapUrl = req.body.map_url || req.body.mapUrl || null;
+    const coordsFromMap = extractGoogleMapsCoords(mapUrl);
 
     const lat =
-      req.body.lat !== undefined &&
-      req.body.lat !== null &&
-      req.body.lat !== ''
+      req.body.lat !== undefined && req.body.lat !== null && req.body.lat !== ''
         ? Number(req.body.lat)
-        : null;
+        : req.body.latitude !== undefined && req.body.latitude !== null && req.body.latitude !== ''
+          ? Number(req.body.latitude)
+          : coordsFromMap
+            ? coordsFromMap.lat
+            : null;
 
     const lng =
-      req.body.lng !== undefined &&
-      req.body.lng !== null &&
-      req.body.lng !== ''
+      req.body.lng !== undefined && req.body.lng !== null && req.body.lng !== ''
         ? Number(req.body.lng)
-        : null;
+        : req.body.longitude !== undefined && req.body.longitude !== null && req.body.longitude !== ''
+          ? Number(req.body.longitude)
+          : coordsFromMap
+            ? coordsFromMap.lng
+            : null;
 
     const { rows } = await pool.query(
       `UPDATE salons SET
@@ -702,6 +734,21 @@ router.post('/', requireAdmin, async (req, res) => {
     } = req.body;
 
     const mapUrl = req.body.map_url || req.body.mapUrl || null;
+    const coordsFromMap = extractGoogleMapsCoords(mapUrl);
+    const lat = req.body.lat !== undefined && req.body.lat !== null && req.body.lat !== ''
+      ? Number(req.body.lat)
+      : req.body.latitude !== undefined && req.body.latitude !== null && req.body.latitude !== ''
+        ? Number(req.body.latitude)
+        : coordsFromMap
+          ? coordsFromMap.lat
+          : null;
+    const lng = req.body.lng !== undefined && req.body.lng !== null && req.body.lng !== ''
+      ? Number(req.body.lng)
+      : req.body.longitude !== undefined && req.body.longitude !== null && req.body.longitude !== ''
+        ? Number(req.body.longitude)
+        : coordsFromMap
+          ? coordsFromMap.lng
+          : null;
     const plan = req.body.plan || 'starter';
 
     if (!name || !username || !password) {
@@ -727,10 +774,12 @@ router.post('/', requireAdmin, async (req, res) => {
         child_cut,
         color,
         map_url,
+        lat,
+        lng,
         plan,
         subscription_status
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'active')
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'active')
       RETURNING *`,
       [
         id,
@@ -745,6 +794,8 @@ router.post('/', requireAdmin, async (req, res) => {
         childCut || false,
         color || '#28d36b',
         mapUrl,
+        Number.isFinite(lat) ? lat : null,
+        Number.isFinite(lng) ? lng : null,
         plan
       ]
     );

@@ -5,6 +5,7 @@ const { exec } = require('child_process'); // ✅ ADDED
 const reviewRoutes = require('./routes/reviews');
 const gerantRoutes = require('./routes/gerants');
 const subscriptionRoutes = require('./routes/subscriptions');
+const pushRoutes = require('./routes/push');
 const app = express();
 
 // ── AUTO DB SETUP (NO CLI NEEDED) ───────────────────────────
@@ -60,6 +61,7 @@ app.use('/api/admin',   adminRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/gerants', gerantRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/push',    pushRoutes);
 // ── 404 ──────────────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });

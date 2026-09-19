@@ -3,76 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <title>Mkass</title>
-
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-
-    <meta name="theme-color" content="#1ba640" />
+    <title>Mkass — Réservez votre coiffeur</title>
+    <meta name="description" content="Mkass aide les salons, coiffeurs et barbiers à recevoir des réservations, gérer le planning, le personnel et la caisse depuis le web et le mobile." />
+    <meta name="theme-color" content="#101010" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Mkass" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
 
-    <style>
-      #mkass-splash {
-        position: fixed;
-        inset: 0;
-        z-index: 99999;
-        background: #ffffff;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      }
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
-      #mkass-splash img {
-        width: 96px;
-        height: 96px;
-        border-radius: 28px;
-        display: block;
-        image-rendering: auto;
-      }
-
-      #mkass-splash h1 {
-        margin: 22px 0 0;
-        color: #101010;
-        font-size: 36px;
-        line-height: 1;
-        font-weight: 800;
-        letter-spacing: -0.05em;
-      }
-
-      #mkass-splash p {
-        margin: 10px 0 0;
-        color: #777;
-        font-size: 13px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      body.app-loaded #mkass-splash {
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 180ms ease;
-      }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   </head>
 
   <body>
-    <div id="mkass-splash" aria-hidden="true">
-      <img src="/mkass-logo.svg" alt="" />
-      <h1>Mkass</h1>
-      <p>Réservation salon &amp; barber</p>
-    </div>
-
     <div id="root"></div>
-
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
